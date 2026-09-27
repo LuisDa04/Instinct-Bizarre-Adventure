@@ -1,0 +1,8 @@
+[project]
+name = "instinct-bizarre-adventure"
+version = "0.1.0"
+description = "Instinct language interpreter and JoJo-themed creature simulator"
+requires-python = ">=3.10"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
