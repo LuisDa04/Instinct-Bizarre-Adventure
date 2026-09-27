@@ -189,3 +189,97 @@ def test_label_and_goto_scan() -> None:
         TokenType.NEWLINE,
         TokenType.EOF,
     ]
+
+
+def test_several_lexical_errors_are_all_reported() -> None:
+    result = scan("health 80 @ 1\nvision 6 !\nlifespan 300 $\n")
+    assert [error.line for error in result.errors] == [1, 2, 3]
+    assert [token.type for token in result.tokens] == [TokenType.EOF]
+
+
+def test_ident_has_no_literal_and_text_lexeme_keeps_quotes() -> None:
+    result = scan('health "grass"')
+    assert result.errors == []
+    ident, text = result.tokens[0], result.tokens[1]
+    assert ident.type == TokenType.IDENT
+    assert ident.lexeme == "health"
+    assert ident.literal is None
+    assert text.type == TokenType.TEXT
+    assert text.lexeme == '"grass"'
+    assert text.literal == "grass"
+
+
+def test_number_followed_by_letters_splits_into_two_tokens() -> None:
+    result = scan("12abc")
+    assert result.errors == []
+    assert [token.type for token in result.tokens] == [
+        TokenType.INT,
+        TokenType.IDENT,
+        TokenType.NEWLINE,
+        TokenType.EOF,
+    ]
+    assert result.tokens[0].literal == 12
+    assert result.tokens[1].lexeme == "abc"
+
+
+def test_large_integer_is_kept_as_is() -> None:
+    result = scan("999999999999999999999999")
+    assert result.errors == []
+    assert result.tokens[0].type == TokenType.INT
+    assert result.tokens[0].literal == 999999999999999999999999
+
+
+def test_error_on_last_line_without_trailing_newline() -> None:
+    result = scan("health 80\nvision 6 @")
+    assert len(result.errors) == 1
+    assert result.errors[0].line == 2
+    assert [token.type for token in result.tokens] == [
+        TokenType.IDENT,
+        TokenType.INT,
+        TokenType.NEWLINE,
+        TokenType.EOF,
+    ]
+
+
+def test_bang_equal_inside_expression() -> None:
+    assert types('if name(x, y) != "Rock" goto start') == [
+        TokenType.IF,
+        TokenType.IDENT,
+        TokenType.LPAREN,
+        TokenType.IDENT,
+        TokenType.COMMA,
+        TokenType.IDENT,
+        TokenType.RPAREN,
+        TokenType.BANG_EQUAL,
+        TokenType.TEXT,
+        TokenType.GOTO,
+        TokenType.IDENT,
+        TokenType.NEWLINE,
+        TokenType.EOF,
+    ]
+
+
+def test_lone_bang_drops_the_whole_line() -> None:
+    result = scan("if health > 10 ! goto start\nvision 6\n")
+    assert len(result.errors) == 1
+    assert result.errors[0].line == 1
+    assert [token.type for token in result.tokens] == [
+        TokenType.IDENT,
+        TokenType.INT,
+        TokenType.NEWLINE,
+        TokenType.EOF,
+    ]
+
+
+def test_unterminated_text_does_not_eat_next_line() -> None:
+    result = scan('say("oops\nwait(1)\n')
+    assert len(result.errors) == 1
+    assert result.errors[0].line == 1
+    assert [token.type for token in result.tokens] == [
+        TokenType.IDENT,
+        TokenType.LPAREN,
+        TokenType.INT,
+        TokenType.RPAREN,
+        TokenType.NEWLINE,
+        TokenType.EOF,
+    ]
