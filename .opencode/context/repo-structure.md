@@ -1,4 +1,4 @@
-<!-- Context: main@1f95b71 -->
+<!-- Context: main@4ff32d9 -->
 # Repository Context
 
 Last updated: 2026-09-29
@@ -31,7 +31,7 @@ instinct/               Python package (phases F1+)
     tokens.py           TokenType enum + Token(type, lexeme, literal, line)
     scanner.py          line-oriented scanner, scan(source) -> ScanResult
     ast_nodes.py        frozen AST: Node -> Expr (7) / Stmt (5) + Header/Program
-    parser.py           Pratt parser, parse(tokens) -> ParseResult (F2, uncommitted)
+    parser.py           Pratt parser, parse(tokens) -> ParseResult
     (resolver.py — planned F3)
   lang/                 language runtime: actions/, functions, perceptions, interpreter (F6-F7)
   world/                entities, world rules, perceptions, rng.py (seeded Rng)
@@ -42,6 +42,7 @@ tests/                  pytest suite (64 tests: 4 scaffold + 24 scanner + 36 par
 terrains/ objects/ maps/ creatures/   runtime content dirs the app loads (spec §4.1), .gitkeep placeholders
 PLAN.md                 the project plan (source of truth for decisions)
 instinct.md             the specification (do not edit)
+GUIA_AST_PARSER.md      local study guide (plain-Spanish AST+parser walkthrough, gitignored, not pushed)
 ```
 
 ## Core Architecture
@@ -96,9 +97,9 @@ Two-stage front end → tree-walking interpreter (spec §5 forbids a bytecode VM
 ## Current Status
 
 - **F0 done**: package scaffold, runtime content dirs, seeded `Rng`, pytest wired.
-- **F1 done**: scanner with error recovery; lexer edge cases covered (`main@1f95b71`).
-- **F2 done (uncommitted)**: `ast_nodes.py` + Pratt `parser.py` + `tests/test_parser.py`;
-  64 tests green. Working tree: `?? ast_nodes.py ?? parser.py ?? test_parser.py`.
+- **F1 done**: scanner with error recovery; lexer edge cases covered (`main@01d2476`).
+- **F2 done** (`75b8c21`, pushed): `ast_nodes.py` + Pratt `parser.py` +
+  `tests/test_parser.py`; 64 tests green.
 - **Next**: F3 — `resolver.py` with the §2.8 semantic checks (header keys/ranges,
   `start:`, duplicate/unknown labels, assignment targets, action/function catalogs
   + arity) + label resolution to instruction indices (I12). F2 stays syntax-only.
