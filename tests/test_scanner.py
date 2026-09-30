@@ -128,7 +128,7 @@ def test_unterminated_text_reports_start_line() -> None:
     result = scan('creature X\nsay("oops\nwait(1)\n')
     assert len(result.errors) == 1
     assert result.errors[0].line == 2
-    assert "unterminated" in result.errors[0].message
+    assert "sin cerrar" in result.errors[0].message
     assert not any(token.type == TokenType.TEXT for token in result.tokens)
 
 

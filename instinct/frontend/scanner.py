@@ -85,7 +85,7 @@ class Scanner:
             if self._match("="):
                 self._add(TokenType.BANG_EQUAL, "!=")
             else:
-                self._error("unexpected character '!'")
+                self._error("carácter inesperado '!'")
         elif char == "<":
             if self._match("="):
                 self._add(TokenType.LESS_EQUAL, "<=")
@@ -97,7 +97,7 @@ class Scanner:
             else:
                 self._add(TokenType.GREATER, ">")
         else:
-            self._error(f"unexpected character {char!r}")
+            self._error(f"carácter inesperado {char!r}")
 
     def _scan_number(self, first: str) -> None:
         lexeme = [first]
@@ -119,7 +119,7 @@ class Scanner:
         while not self._at_end() and self._peek() not in ('"', "\n"):
             value.append(self._advance())
         if self._at_end() or self._peek() == "\n":
-            self._error("unterminated text literal", start_line)
+            self._error("literal de texto sin cerrar", start_line)
             return
         self._advance()
         self._add(TokenType.TEXT, '"' + "".join(value) + '"', "".join(value), line=start_line)

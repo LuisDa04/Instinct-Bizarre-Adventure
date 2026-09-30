@@ -1,11 +1,11 @@
-<!-- Context: main@4ff32d9 -->
+<!-- Context: main@309265f -->
 # Repository Context
 
 Last updated: 2026-09-29
 
 ## Tech Stack
 
-- **Language**: Python 3.14 (developed/tested on `Python\pythoncore-3.14-64`)
+- **Language**: Python 3.14.7 (developed/tested on `Python\pythoncore-3.14-64`; `requires-python = ">=3.10"`)
 - **Build Tool**: none yet (pure package)
 - **Package Manager**: pip
 - **Key Dependencies**:
@@ -72,7 +72,12 @@ Two-stage front end → tree-walking interpreter (spec §5 forbids a bytecode VM
 - **Errors**: everything compile-time derives from `CompileError(line, message)`; the
   `line` is carried on every `Token` and will be carried on every AST node (spec §1
   requires line numbers on all errors).
-- **Naming**: modules snake_case, packages no `__init__` content; English code, Spanish docs.
+- **Error messages are written in Spanish** (project rule, see
+  `error-messages.md`). The reader of a message is the end user reading the app's logs
+  (spec §4.1) or the professor at the defense (spec §6). Identifiers stay English.
+  `CompileError` wraps as `línea N: mensaje` — keep the `línea` prefix untranslated.
+- **Naming**: modules snake_case, packages no `__init__` content; English identifiers,
+  Spanish docs **and** Spanish error text.
 - **Docs/plan language**: `PLAN.md` and commit bodies in English; spec citations use `§N`.
 - **Comments**: none in code (project rule); spec citations live in `PLAN.md`.
 - **Commits**: atomic, conventional prefixes (`docs:`, `feat:`, `chore:`), why not what.
@@ -85,8 +90,10 @@ Two-stage front end → tree-walking interpreter (spec §5 forbids a bytecode VM
   `test_scanner.py` (tokens, line numbers, lexical error recovery, operator set,
   24 tests incl. edge cases: multi-error lines, unterminated text, lone `!`,
   number/ident splitting, error on last line without trailing newline),
-  `test_parser.py` (36 tests: §2.5 precedence trio + `not a == b`, the 5 line forms,
-  header extraction, exact line+message for every syntax error, multi-error recovery).
+`test_parser.py` (36 tests: §2.5 precedence trio + `not a == b`, the 5 line forms,
+   header extraction, exact line+message for every syntax error, multi-error recovery).
+- Tests assert **exact** `(line, message)` pairs, so every message change breaks the
+  suite on purpose — that is the point: it makes message wording a reviewed decision.
 - Tests use inline `.ins` sources — the repo intentionally ships **no** example content
   (spec examples live in `instinct.md`; the professors bring their own at defense).
 
@@ -100,10 +107,15 @@ Two-stage front end → tree-walking interpreter (spec §5 forbids a bytecode VM
 - **F1 done**: scanner with error recovery; lexer edge cases covered (`main@01d2476`).
 - **F2 done** (`75b8c21`, pushed): `ast_nodes.py` + Pratt `parser.py` +
   `tests/test_parser.py`; 64 tests green.
+- **Error messages now Spanish** (all 21 existing scanner/parser messages translated;
+  tests updated in lockstep; catalog in `error-messages.md`).
 - **Next**: F3 — `resolver.py` with the §2.8 semantic checks (header keys/ranges,
   `start:`, duplicate/unknown labels, assignment targets, action/function catalogs
   + arity) + label resolution to instruction indices (I12). F2 stays syntax-only.
+  New messages must be added to `error-messages.md` in the same commit.
 
 ## Additional Context Files
 
-- None yet (project is small; everything fits here).
+- `error-messages.md` — full catalog of every error message the project throws
+  (scanner, parser, plus slots reserved for F3 semantic / F7 runtime / F8 map).
+  **Append new messages there when they are added.**
