@@ -216,4 +216,6 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+# Local study guides (do not commit)
+GUIA_AST_PARSER.md
 *.pdf
