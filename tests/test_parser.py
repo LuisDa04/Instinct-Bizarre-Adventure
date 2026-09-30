@@ -287,91 +287,91 @@ def test_last_line_without_trailing_newline_parses() -> None:
 
 def test_bare_identifier_is_an_invalid_line() -> None:
     assert [(error.line, error.message) for error in parse_errors("start:\nfoo")] == [
-        (2, "invalid line")
+        (2, "línea inválida")
     ]
 
 
 def test_goto_without_label_errors() -> None:
     assert [
         (error.line, error.message) for error in parse_errors("start:\ngoto")
-    ] == [(2, "expected label name after 'goto'")]
+    ] == [(2, "se esperaba el nombre de una etiqueta tras 'goto'")]
 
 
 def test_if_goto_without_label_errors() -> None:
     assert [
         (error.line, error.message) for error in parse_errors("start:\nif x goto")
-    ] == [(2, "expected label name after 'goto'")]
+    ] == [(2, "se esperaba el nombre de una etiqueta tras 'goto'")]
 
 
 def test_if_without_goto_errors() -> None:
     assert [
         (error.line, error.message) for error in parse_errors("start:\nif x flee")
-    ] == [(2, "expected 'goto' after condition")]
+    ] == [(2, "se esperaba 'goto' tras la condición")]
 
 
 def test_incomplete_expression_errors() -> None:
     assert [
         (error.line, error.message) for error in parse_errors("start:\nu = 1 +")
-    ] == [(2, "expected expression")]
+    ] == [(2, "se esperaba una expresión")]
 
 
 def test_unclosed_grouping_errors() -> None:
     assert [
         (error.line, error.message) for error in parse_errors("start:\nv = (a")
-    ] == [(2, "expected ')' after expression")]
+    ] == [(2, "se esperaba ')' tras la expresión")]
 
 
 def test_unclosed_call_errors() -> None:
     assert [
         (error.line, error.message) for error in parse_errors("start:\nw = f(1,")
-    ] == [(2, "expected expression")]
+    ] == [(2, "se esperaba una expresión")]
 
 
 def test_trailing_comma_in_call_errors() -> None:
     assert [
         (error.line, error.message)
         for error in parse_errors("start:\nmove(1, 2,)")
-    ] == [(2, "expected expression")]
+    ] == [(2, "se esperaba una expresión")]
 
 
 def test_trailing_tokens_after_statement_error() -> None:
     assert [
         (error.line, error.message) for error in parse_errors("start:\nx = 1 2")
-    ] == [(2, "unexpected token after statement")]
+    ] == [(2, "token inesperado tras la instrucción")]
     assert [
         (error.line, error.message)
         for error in parse_errors("start:\nwait(1) extra")
-    ] == [(2, "unexpected token after statement")]
+    ] == [(2, "token inesperado tras la instrucción")]
     assert [
         (error.line, error.message)
         for error in parse_errors("start: extra")
-    ] == [(1, "unexpected token after statement")]
+    ] == [(1, "token inesperado tras la instrucción")]
 
 
 def test_header_without_value_errors() -> None:
     assert [(error.line, error.message) for error in parse_errors("health")] == [
-        (1, "invalid header value")
+        (1, "valor de cabecera inválido")
     ]
 
 
 def test_header_with_wrong_value_errors() -> None:
     assert [(error.line, error.message) for error in parse_errors("health = 3")] == [
-        (1, "invalid header value")
+        (1, "valor de cabecera inválido")
     ]
     assert [(error.line, error.message) for error in parse_errors("health -x")] == [
-        (1, "invalid header value")
+        (1, "valor de cabecera inválido")
     ]
 
 
 def test_header_with_extra_tokens_errors() -> None:
     assert [
         (error.line, error.message) for error in parse_errors("health 80 90")
-    ] == [(1, "unexpected token after header entry")]
+    ] == [(1, "token inesperado tras una entrada de cabecera")]
 
 
 def test_header_with_non_identifier_key_errors() -> None:
     assert [(error.line, error.message) for error in parse_errors("= 3")] == [
-        (1, "expected header key")
+        (1, "se esperaba una clave de cabecera")
     ]
 
 
@@ -388,10 +388,10 @@ def test_several_errors_are_all_reported() -> None:
         "    x =\n"
     )
     assert [(error.line, error.message) for error in errors] == [
-        (2, "invalid header value"),
-        (5, "expected expression"),
-        (7, "invalid line"),
-        (9, "expected expression"),
+        (2, "valor de cabecera inválido"),
+        (5, "se esperaba una expresión"),
+        (7, "línea inválida"),
+        (9, "se esperaba una expresión"),
     ]
 
 

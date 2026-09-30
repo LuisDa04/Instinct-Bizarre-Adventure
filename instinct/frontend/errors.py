@@ -3,7 +3,7 @@ from __future__ import annotations
 
 class CompileError(Exception):
     def __init__(self, line: int, message: str) -> None:
-        super().__init__(f"line {line}: {message}")
+        super().__init__(f"línea {line}: {message}")
         self.line = line
         self.message = message
 
