@@ -1,4 +1,4 @@
-<!-- Context: main@309265f -->
+<!-- Context: main@2894ce2 -->
 # Catálogo de mensajes de error
 
 > **Regla del proyecto: todo mensaje de error va en español.** Quien los lee es el
