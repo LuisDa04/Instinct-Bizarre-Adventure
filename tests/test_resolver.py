@@ -240,3 +240,115 @@ def test_several_errors_are_all_reported_in_order() -> None:
         (6, "salto a etiqueta inexistente 'nowhere'"),
         (7, "acción desconocida 'shoot'"),
     ]
+
+
+def test_body_with_only_start_resolves() -> None:
+    resolved = resolve_ok(HEADER)
+    assert resolved.labels == {"start": 0}
+
+
+def test_backward_jump_to_start_resolves() -> None:
+    resolved = resolve_ok(HEADER + "wait(1)\ngoto start\n")
+    assert resolved.labels == {"start": 0}
+
+
+def test_boundary_header_values_resolve() -> None:
+    resolved = resolve_ok(
+        "creature Uruk\nfaction x\nhealth 1\nvision 1\nlifespan 1\nstart:\nwait(1)\n"
+    )
+    assert (resolved.health, resolved.vision, resolved.lifespan) == (1, 1, 1)
+
+
+def test_labels_are_case_sensitive() -> None:
+    assert [
+        (error.line, error.message)
+        for error in resolve_errors(HEADER + "goto Start\n")
+    ] == [(7, "salto a etiqueta inexistente 'Start'")]
+
+
+def test_duplicate_start_label_errors() -> None:
+    assert [
+        (error.line, error.message)
+        for error in resolve_errors(HEADER + "wait(1)\nstart:\nwait(1)\n")
+    ] == [(8, "etiqueta duplicada 'start'")]
+
+
+def test_see_used_as_action_errors() -> None:
+    assert [
+        (error.line, error.message)
+        for error in resolve_errors(HEADER + "see(1, 2)\n")
+    ] == [(7, "acción desconocida 'see'")]
+
+
+def test_wait_used_as_function_errors() -> None:
+    assert [
+        (error.line, error.message)
+        for error in resolve_errors(HEADER + "hambre = wait(1)\nwait(1)\n")
+    ] == [(7, "función desconocida 'wait'")]
+
+
+def test_action_with_no_arguments_errors() -> None:
+    assert [
+        (error.line, error.message) for error in resolve_errors(HEADER + "wait()\n")
+    ] == [(7, "la acción 'wait' espera 1 argumento, no 0")]
+
+
+def test_function_with_extra_arguments_errors() -> None:
+    assert [
+        (error.line, error.message)
+        for error in resolve_errors(HEADER + "hambre = see(1, 2, 3)\nwait(1)\n")
+    ] == [(7, "la función 'see' espera 2 argumentos, no 3")]
+
+
+def test_spec_example_resolves_end_to_end() -> None:
+    resolved = resolve_ok(
+        "# uruk.ins\n"
+        "creature Uruk\n"
+        "faction isengard\n"
+        "health 80\n"
+        "vision 6\n"
+        "lifespan 400\n"
+        "\n"
+        "start:\n"
+        "    if health < 20 goto flee\n"
+        "    if enemy_dist == 1 goto bite\n"
+        "    if enemy_dist > 0 goto hunt\n"
+        "    if health > 70 and allies_near < 2 goto breed\n"
+        "    if allies_near > 3 goto celebrate\n"
+        "wander:\n"
+        "    move(random % 3 - 1, random % 3 - 1, 1)\n"
+        "    goto start\n"
+        "\n"
+        "bite:\n"
+        "    consume(enemy_dx, enemy_dy, 15, 15)\n"
+        "    goto start\n"
+        "\n"
+        "hunt:\n"
+        "    move(enemy_dx, enemy_dy, 2)\n"
+        "    goto start\n"
+        "\n"
+        "flee:\n"
+        "    move(-enemy_dx, -enemy_dy, 3)\n"
+        "    goto start\n"
+        "\n"
+        "breed:\n"
+        "    # bred in the pits of Isengard\n"
+        "    if see(x, y + 1) != GROUND goto wander\n"
+        "    reproduce(0, 1, 30)\n"
+        "    goto start\n"
+        "\n"
+        "celebrate:\n"
+        '    say("meat is back on the menu")\n'
+        '    roar("we are the fighting Uruk-hai")\n'
+        "    goto start\n"
+    )
+    assert resolved.name == "Uruk"
+    assert set(resolved.labels) == {
+        "start",
+        "wander",
+        "bite",
+        "hunt",
+        "flee",
+        "breed",
+        "celebrate",
+    }
