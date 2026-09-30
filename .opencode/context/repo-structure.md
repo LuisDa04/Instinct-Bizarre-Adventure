@@ -1,4 +1,4 @@
-<!-- Context: main@2894ce2 -->
+<!-- Context: main@9eaa116 -->
 # Repository Context
 
 Last updated: 2026-09-30
@@ -32,13 +32,16 @@ instinct/               Python package (phases F1+)
     scanner.py          line-oriented scanner, scan(source) -> ScanResult
     ast_nodes.py        frozen AST: Node -> Expr (7) / Stmt (5) + Header/Program
     parser.py           Pratt parser, parse(tokens) -> ParseResult
-    (resolver.py — planned F3)
+    resolver.py         resolve(program) -> ResolveResult; §2.8 checks + labels to indices
+    catalogs.py         single source of truth: ACTION_ARITY, FUNCTION_ARITY,
+                        PERCEPTIONS (31), CONSTANTS, HEADER_KEYS (read by F3 and F6/F7)
+    (ui/ lang/ world/ loaders/ sim/ as planned; only world/rng.py exists so far)
   lang/                 language runtime: actions/, functions, perceptions, interpreter (F6-F7)
   world/                entities, world rules, perceptions, rng.py (seeded Rng)
   loaders/              .te / .ob / .map / .ins loaders (F4, F8, F9)
   sim/                  engine.py tick loop + cli.py terminal runner (F5, F9)
   ui/                   Pygame app (F10)
-tests/                  pytest suite (64 tests: 4 scaffold + 24 scanner + 36 parser)
+tests/                  pytest suite (89 tests: 4 scaffold + 24 scanner + 36 parser + 25 resolver)
 terrains/ objects/ maps/ creatures/   runtime content dirs the app loads (spec §4.1), .gitkeep placeholders
 PLAN.md                 the project plan (source of truth for decisions)
 instinct.md             the specification (do not edit)
@@ -61,8 +64,14 @@ Two-stage front end → tree-walking interpreter (spec §5 forbids a bytecode VM
    `parse()` returns `ParseResult(program, errors)` — **panic-mode**: collects several
    `ParseError`s per file, header lines recover per-line to avoid error cascades.
    Syntax only: no semantic checks (F3), no evaluation (F6). Every node carries `line`.
-3. `resolver.py` (F3) performs the compile-time checks of spec §2.8 (header, labels,
-   arity, assignment targets) against the catalog of actions/functions/perceptions.
+3. `resolver.py` (F3) performs the compile-time checks of spec §2.8 that need no
+   simulation: header presence/order/ranges, `start:` present, duplicate/unknown
+   labels (resolved to body indices, I12), assignment targets (D3: perceptions,
+   constants, `see`/`name`), action/function catalog membership + exact arity.
+   Collects several `SemanticError`s; `resolved=None` if any. Reads its name/arity
+   tables from `catalogs.py` so the interpreter (F6/F7) reuses the same source.
+   Types, `dx`/`dy` range and unassigned reads are deliberately NOT checked here:
+   §2.8 lists them as execution errors (ictus, F7).
 4. `sim/engine.py` owns the RNG, shuffles turn order per tick, refreshes perceptions
    and interprets each creature from its saved program counter (spec §2.7).
    Only the engine talks to the interpreter; UI and CLI are clients of `step()/state()`.
@@ -91,7 +100,10 @@ Two-stage front end → tree-walking interpreter (spec §5 forbids a bytecode VM
   24 tests incl. edge cases: multi-error lines, unterminated text, lone `!`,
   number/ident splitting, error on last line without trailing newline),
 `test_parser.py` (36 tests: §2.5 precedence trio + `not a == b`, the 5 line forms,
-   header extraction, exact line+message for every syntax error, multi-error recovery).
+    header extraction, exact line+message for every syntax error, multi-error recovery),
+  `test_resolver.py` (25 tests: one per §2.8 compile error with exact line+message,
+    label→index resolution, header order/duplicate/unknown-key rules, calls checked
+    inside conditions and action args).
 - Tests assert **exact** `(line, message)` pairs, so every message change breaks the
   suite on purpose — that is the point: it makes message wording a reviewed decision.
 - Tests use inline `.ins` sources — the repo intentionally ships **no** example content
@@ -109,13 +121,15 @@ Two-stage front end → tree-walking interpreter (spec §5 forbids a bytecode VM
   `tests/test_parser.py`; 64 tests green.
 - **Error messages now Spanish** (all 21 existing scanner/parser messages translated;
   tests updated in lockstep; catalog in `error-messages.md`).
-- **Next**: F3 — `resolver.py` with the §2.8 semantic checks (header keys/ranges,
-  `start:`, duplicate/unknown labels, assignment targets, action/function catalogs
-  + arity) + label resolution to instruction indices (I12). F2 stays syntax-only.
-  New messages must be added to `error-messages.md` in the same commit.
+- **F3 done**: `catalogs.py` (shared name/arity tables) + `resolver.py` with the §2.8
+  semantic checks + `tests/test_resolver.py`; 89 tests green.
+- **Next**: F4 (world model + `.te`/`.ob` loaders, parallel to the language track)
+  and F6 (tree-walking interpreter over `ResolvedProgram`: PC, 100 lines/turn,
+  `wait`, persistent variables, §2.6 perceptions). New messages must be added to
+  `error-messages.md` in the same commit.
 
 ## Additional Context Files
 
 - `error-messages.md` — full catalog of every error message the project throws
-  (scanner, parser, plus slots reserved for F3 semantic / F7 runtime / F8 map).
+  (scanner, parser, resolver, plus slots reserved for F7 runtime / F8 map).
   **Append new messages there when they are added.**

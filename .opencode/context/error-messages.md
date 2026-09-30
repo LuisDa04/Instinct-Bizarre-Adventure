@@ -1,4 +1,4 @@
-<!-- Context: main@2894ce2 -->
+<!-- Context: main@9eaa116 -->
 # Catálogo de mensajes de error
 
 > **Regla del proyecto: todo mensaje de error va en español.** Quien los lee es el
@@ -120,27 +120,81 @@ conservan para que el parser siga siendo correcto si alguien llama a los
 
 ---
 
-## 4. Pendientes (spec §2.8, PLAN §2) — aún NO implementados
+## 4. Resolver — `instinct/frontend/resolver.py` (15 mensajes)
 
-Estos mensajes **todavía no existen en el código**. Se anotan aquí para que F3, F7 y
-F8 las formulen en español desde el principio, no para dar por hecho que existen.
+Solo se invoca si el parser devolvió un `Program` sin errores. Recoge varios
+`SemanticError` de una vez (cabecera → etiquetas → cuerpo, en ese orden) y
+devuelve `resolved=None` en cuanto hay uno solo: el archivo se rechaza entero.
 
-**F3 — compilación** (`SemanticError` en `resolver.py`): cabecera incompleta o con las
-claves en mal orden, valor fuera de rango (`health ≤ 0`, `vision < 1`, `lifespan ≤ 0`),
-falta `start:`, etiqueta duplicada, salto a etiqueta inexistente, asignación a una
-percepción o a una constante, nombre de acción o de función desconocido, número de
-argumentos distinto del esperado, mapa con un `char` no declarado.
+Los nombres y aridades válidos viven en `instinct/frontend/catalogs.py`
+(`ACTION_ARITY`, `FUNCTION_ARITY`, `PERCEPTIONS`, `CONSTANTS`, `HEADER_KEYS`).
+
+### Cabecera (spec §2.2)
+
+| Mensaje | Nace en | Cuándo |
+|---|---|---|
+| `la primera línea debe ser 'creature Nombre'` | `_check_header` L84 | La primera entrada no es `creature` |
+| `falta la clave 'vision' en la cabecera` | `_check_header` L87 | Falta alguna de las 5 (una por cada ausente; la clave va entre comillas) |
+| `clave de cabecera desconocida 'speed'` | `_check_header` L78 | Una clave que no es de las 5 |
+| `clave de cabecera duplicada 'health'` | `_check_header` L80 | La clave aparece dos veces (se reporta la segunda) |
+| `valor de cabecera inválido` | `_header_text` L111, `_header_range` L119 | `creature`/`faction` con número, o `health`/`vision`/`lifespan` con nombre |
+| `health debe ser mayor que 0` | `_header_range` L122 | `health < 1` (el parser guarda los negativos a propósito para esto) |
+| `vision debe ser mayor o igual que 1` | `_header_range` L122 | `vision < 1` |
+| `lifespan debe ser mayor que 0` | `_header_range` L122 | `lifespan < 1` |
+
+Sin entradas de cabecera (archivo vacío) salen los 5 `falta la clave…` con la
+línea 1. Una clave ausente no impide revisar el resto: todo se recoge junto.
+
+### Etiquetas (spec §2.3, §2.8)
+
+| Mensaje | Nace en | Cuándo |
+|---|---|---|
+| `falta la etiqueta 'start:'` | `_collect_labels` L136 | No hay ninguna etiqueta `start` (línea 1 del archivo) |
+| `etiqueta duplicada 'flee'` | `_collect_labels` L130 | Segunda definición del mismo nombre |
+| `salto a etiqueta inexistente 'nowhere'` | `_check_target` L153 | `goto` o `if…goto` a una etiqueta no definida (valen los saltos hacia adelante) |
+
+### Asignación (spec §2.3, decisión D3)
+
+| Mensaje | Nace en | Cuándo |
+|---|---|---|
+| `no se puede asignar a la percepción 'health'` | `_check_assign_target` L157 | El destino es una de las 31 percepciones de §2.6 |
+| `no se puede asignar a la constante 'NONE'` | `_check_assign_target` L159 | El destino es `NONE/GROUND/OBJECT/ALLY/ENEMY` |
+| `no se puede asignar a la función 'see'` | `_check_assign_target` L161 | El destino es `see` o `name` |
+
+### Acciones y funciones (spec §2.4, §2.5, §2.8)
+
+| Mensaje | Nace en | Cuándo |
+|---|---|---|
+| `acción desconocida 'shoot'` | `_check_action` L166 | La acción no está en el catálogo (p. ej. usar `see` como instrucción) |
+| `la acción 'wait' espera 1 argumento, no 2` | `_check_action` L168 | Aridad distinta (`_arity_message`: singular con 1, plural si no) |
+| `función desconocida 'volar'` | `_check_expr` L179 | La llamada en una expresión no es `see`/`name` (p. ej. usar `wait` en una cuenta) |
+| `la función 'see' espera 2 argumentos, no 1` | `_check_expr` L181 | Aridad distinta |
+
+`_check_expr` baja por toda la expresión (`Binary`/`Logical`/`Unary`/`Group`/
+argumentos de llamada), así que también caza `wait(see(1))` o
+`if see(x) > 0 goto start`. Lo que F3 **no** comprueba a propósito: tipos,
+`dx`/`dy` fuera de rango, variable no asignada — §2.8 los lista como errores
+de **ejecución** (ictus, F7), aunque el argumento sea un literal.
+
+---
+
+## 5. Pendientes (spec §2.8, PLAN §2) — aún NO implementados
+
+Estos mensajes **todavía no existen en el código**. Se anotan aquí para que F7 y
+F8 los formulen en español desde el principio, no para dar por hecho que existen.
 
 **F7 — ejecución** (dan ictus, la criatura muere, van a los logs con su línea):
 división por cero, resto por cero (decisión **D2**: también ictus), lectura de variable
 no asignada, `dx`/`dy` fuera de `{-1, 0, 1}`, mezclar entero y texto en un operador no
 lógico, texto donde se exige un número.
 
+**F8 — mapa** (`char` no declarado, spec §3.3): rechazo con char y línea, la app sigue.
+
 ---
 
-## 5. Tests
+## 6. Tests
 
 Los tests afirman pares `(line, message)` **exactos** (`tests/test_scanner.py`,
-`tests/test_parser.py`). Cambiar un mensaje es romper la suite a propósito: obliga a
+`tests/test_parser.py`, `tests/test_resolver.py`). Cambiar un mensaje es romper la suite a propósito: obliga a
 revisar el texto en lugar de colarlo en silencio. Al traducir, se actualizan código y
 tests en el mismo commit.
