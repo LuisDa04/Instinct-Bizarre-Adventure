@@ -66,9 +66,9 @@ class _Parser:
         entries: list[HeaderEntry] = []
         while not self._at_end() and not self._is_label_start():
             try:
-                key = self._consume(TokenType.IDENT, "expected header key")
+                key = self._consume(TokenType.IDENT, "se esperaba una clave de cabecera")
                 value = self._parse_header_value()
-                self._consume_end_of_line("unexpected token after header entry")
+                self._consume_end_of_line("token inesperado tras una entrada de cabecera")
                 entries.append(HeaderEntry(key=key.lexeme, value=value, line=key.line))
             except ParseError as error:
                 self._errors.append(error)
@@ -88,10 +88,10 @@ class _Parser:
             return value
         if token.type is TokenType.MINUS:
             self._advance()
-            number = self._consume(TokenType.INT, "invalid header value")
+            number = self._consume(TokenType.INT, "valor de cabecera inválido")
             assert isinstance(number.literal, int)
             return -number.literal
-        raise ParseError(token.line, "invalid header value")
+        raise ParseError(token.line, "valor de cabecera inválido")
 
     def _is_label_start(self) -> bool:
         return (
@@ -111,38 +111,38 @@ class _Parser:
             return self._parse_assign()
         if token.type is TokenType.IDENT and self._peek_next().type is TokenType.LPAREN:
             return self._parse_action_call()
-        raise ParseError(token.line, "invalid line")
+        raise ParseError(token.line, "línea inválida")
 
     def _parse_label(self) -> Label:
-        name = self._consume(TokenType.IDENT, "expected label name")
-        self._consume(TokenType.COLON, "expected ':' after label name")
+        name = self._consume(TokenType.IDENT, "se esperaba el nombre de una etiqueta")
+        self._consume(TokenType.COLON, "se esperaba ':' tras el nombre de la etiqueta")
         self._consume_end_of_line()
         return Label(name=name.lexeme, line=name.line)
 
     def _parse_goto(self) -> Goto:
-        keyword = self._consume(TokenType.GOTO, "expected 'goto'")
-        label = self._consume(TokenType.IDENT, "expected label name after 'goto'")
+        keyword = self._consume(TokenType.GOTO, "se esperaba 'goto'")
+        label = self._consume(TokenType.IDENT, "se esperaba el nombre de una etiqueta tras 'goto'")
         self._consume_end_of_line()
         return Goto(label=label.lexeme, line=keyword.line)
 
     def _parse_if_goto(self) -> IfGoto:
-        keyword = self._consume(TokenType.IF, "expected 'if'")
+        keyword = self._consume(TokenType.IF, "se esperaba 'if'")
         condition = self._parse_expression()
-        self._consume(TokenType.GOTO, "expected 'goto' after condition")
-        label = self._consume(TokenType.IDENT, "expected label name after 'goto'")
+        self._consume(TokenType.GOTO, "se esperaba 'goto' tras la condición")
+        label = self._consume(TokenType.IDENT, "se esperaba el nombre de una etiqueta tras 'goto'")
         self._consume_end_of_line()
         return IfGoto(condition=condition, label=label.lexeme, line=keyword.line)
 
     def _parse_assign(self) -> Assign:
-        name = self._consume(TokenType.IDENT, "expected variable name")
-        self._consume(TokenType.EQUAL, "expected '=' after variable name")
+        name = self._consume(TokenType.IDENT, "se esperaba el nombre de una variable")
+        self._consume(TokenType.EQUAL, "se esperaba '=' tras el nombre de la variable")
         value = self._parse_expression()
         self._consume_end_of_line()
         return Assign(name=name.lexeme, value=value, line=name.line)
 
     def _parse_action_call(self) -> ActionCall:
-        name = self._consume(TokenType.IDENT, "expected action name")
-        self._consume(TokenType.LPAREN, "expected '(' after action name")
+        name = self._consume(TokenType.IDENT, "se esperaba el nombre de una acción")
+        self._consume(TokenType.LPAREN, "se esperaba '(' tras el nombre de la acción")
         args = _parse_argument_list(self)
         self._consume_end_of_line()
         return ActionCall(name=name.lexeme, args=args, line=name.line)
@@ -154,7 +154,7 @@ class _Parser:
         token = self._advance()
         prefix = _PREFIX.get(token.type)
         if prefix is None:
-            raise ParseError(token.line, "expected expression")
+            raise ParseError(token.line, "se esperaba una expresión")
         left = prefix(self, token)
         while level <= self._infix_level():
             operator = self._advance()
@@ -171,7 +171,7 @@ class _Parser:
             self._advance()
         self._match(TokenType.NEWLINE)
 
-    def _consume_end_of_line(self, message: str = "unexpected token after statement") -> None:
+    def _consume_end_of_line(self, message: str = "token inesperado tras la instrucción") -> None:
         if self._at_end():
             return
         self._consume(TokenType.NEWLINE, message)
@@ -224,7 +224,7 @@ def _prefix_variable(parser: _Parser, token: Token) -> Expr:
 
 def _prefix_grouping(parser: _Parser, token: Token) -> Expr:
     inner = parser._parse_expression()
-    parser._consume(TokenType.RPAREN, "expected ')' after expression")
+    parser._consume(TokenType.RPAREN, "se esperaba ')' tras la expresión")
     return Group(inner=inner, line=token.line)
 
 
@@ -249,7 +249,7 @@ def _parse_argument_list(parser: _Parser) -> list[Expr]:
         args.append(parser._parse_expression())
         while parser._match(TokenType.COMMA):
             args.append(parser._parse_expression())
-    parser._consume(TokenType.RPAREN, "expected ')' after arguments")
+    parser._consume(TokenType.RPAREN, "se esperaba ')' tras los argumentos")
     return args
 
 
