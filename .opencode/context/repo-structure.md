@@ -41,7 +41,7 @@ instinct/               Python package (phases F1+)
   loaders/              .te / .ob / .map / .ins loaders (F4, F8, F9)
   sim/                  engine.py tick loop + cli.py terminal runner (F5, F9)
   ui/                   Pygame app (F10)
-tests/                  pytest suite (89 tests: 4 scaffold + 24 scanner + 36 parser + 25 resolver)
+tests/                  pytest suite (99 tests: 4 scaffold + 24 scanner + 36 parser + 35 resolver)
 terrains/ objects/ maps/ creatures/   runtime content dirs the app loads (spec §4.1), .gitkeep placeholders
 PLAN.md                 the project plan (source of truth for decisions)
 instinct.md             the specification (do not edit)
@@ -101,9 +101,10 @@ Two-stage front end → tree-walking interpreter (spec §5 forbids a bytecode VM
   number/ident splitting, error on last line without trailing newline),
 `test_parser.py` (36 tests: §2.5 precedence trio + `not a == b`, the 5 line forms,
     header extraction, exact line+message for every syntax error, multi-error recovery),
-  `test_resolver.py` (25 tests: one per §2.8 compile error with exact line+message,
+  `test_resolver.py` (35 tests: one per §2.8 compile error with exact line+message,
     label→index resolution, header order/duplicate/unknown-key rules, calls checked
-    inside conditions and action args).
+    inside conditions and action args, case-sensitivity, boundary values, and the
+    full §2.1 uruk example resolving end to end).
 - Tests assert **exact** `(line, message)` pairs, so every message change breaks the
   suite on purpose — that is the point: it makes message wording a reviewed decision.
 - Tests use inline `.ins` sources — the repo intentionally ships **no** example content
@@ -122,7 +123,7 @@ Two-stage front end → tree-walking interpreter (spec §5 forbids a bytecode VM
 - **Error messages now Spanish** (all 21 existing scanner/parser messages translated;
   tests updated in lockstep; catalog in `error-messages.md`).
 - **F3 done**: `catalogs.py` (shared name/arity tables) + `resolver.py` with the §2.8
-  semantic checks + `tests/test_resolver.py`; 89 tests green.
+  semantic checks + `tests/test_resolver.py`; 99 tests green.
 - **Next**: F4 (world model + `.te`/`.ob` loaders, parallel to the language track)
   and F6 (tree-walking interpreter over `ResolvedProgram`: PC, 100 lines/turn,
   `wait`, persistent variables, §2.6 perceptions). New messages must be added to
