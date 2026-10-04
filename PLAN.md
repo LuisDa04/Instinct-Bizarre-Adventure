@@ -162,5 +162,8 @@ todas ─▶ F11 (tests continuos)
 | **D6** | Semilla en la UI | **Campo visible + botón «repetir con esta semilla»** | §2.6 generador con semilla; §4.1 extensión de repetición |
 | **D7** | Librería gráfica | **Pygame** (única dependencia) | §4.1 libre; §5 solo exige terminal |
 | **D8** | Temática | **Stands y facciones**: criaturas = usuarios de Stand (Jotaro, Dio, Joseph, Polnareff, Kakyoin); facciones Joestar/Dio/Hamon. Terreno: hierba = césped de Morioh, roca = adoquín; objetos: steamroller, cuchillos. `consume` = drenar sangre/hamon, `roar` = «menacing», `say` = frase famosa | §1 temática libre; §6 sin tocar nombres/efectos de las 7 acciones |
+| **D9** | Error de carga `.te`/`.ob` | **`LoadError(CompileError)` + `.path` opcional** para el log por archivo | §4.1.1 «se reporta con su error y su línea»; un solo árbol de errores y formato `línea N: mensaje` ya testeado |
+| **D10** | Rangos `resource_max`/`regen` | **`>= 0`** (solo los negativos son error) | §3.2 no los fija; `resource_max 0` = terreno estéril u objeto sin reserva inicial |
+| **D11** | Comentarios en `.te`/`.ob` | **Sí, a línea completa** (primer carácter no vacío `#`) | Robustez con ficheros ajenos; no rompe `char #` del `rock.ob` del Anexo |
 
 **Pendientes menores (no bloqueantes):** textos/estética de la UI, cuántas extensiones JoJo se implementan (mínimo viable: ejemplos de `.ins`/`.te`/`.ob`/`.map` que usen solo la base).
