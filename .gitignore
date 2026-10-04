@@ -219,4 +219,5 @@ __marimo__/
 # Local study guides (do not commit)
 GUIA_AST_PARSER.md
 GUIA_RESOLVER.md
+GUIA_WORLD_LOADERS.md
 *.pdf
