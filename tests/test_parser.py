@@ -1,4 +1,4 @@
-from instinct.frontend.ast_nodes import (
+from instinct.compiler.ast_nodes import (
     ActionCall,
     Assign,
     Binary,
@@ -13,10 +13,10 @@ from instinct.frontend.ast_nodes import (
     Unary,
     Variable,
 )
-from instinct.frontend.errors import ParseError
-from instinct.frontend.parser import parse
-from instinct.frontend.scanner import scan
-from instinct.frontend.tokens import TokenType
+from instinct.compiler.errors import ParseError
+from instinct.compiler.parser import parse
+from instinct.compiler.lexer import scan
+from instinct.compiler.tokens import TokenType
 
 
 def parse_ok(source: str) -> Program:

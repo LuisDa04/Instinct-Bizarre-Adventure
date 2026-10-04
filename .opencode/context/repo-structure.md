@@ -1,7 +1,7 @@
-<!-- Context: main@0aa362e -->
+<!-- Context: main@793547e -->
 # Repository Context
 
-Last updated: 2026-09-30
+Last updated: 2026-10-04
 
 ## Tech Stack
 
@@ -26,13 +26,13 @@ Mandatory base = spec sections 2–4. All plan decisions are recorded in **`PLAN
 
 ```
 instinct/               Python package (phases F1+)
-  frontend/             compiler front end (Crafting Interpreters style)
+  compiler/             compiler front end (Crafting Interpreters style)
     errors.py           CompileError(line, msg) + LexError/ParseError/SemanticError
     tokens.py           TokenType enum + Token(type, lexeme, literal, line)
-    scanner.py          line-oriented scanner, scan(source) -> ScanResult
+    lexer.py            line-oriented lexer, scan(source) -> ScanResult
     ast_nodes.py        frozen AST: Node -> Expr (7) / Stmt (5) + Header/Program
     parser.py           Pratt parser, parse(tokens) -> ParseResult
-    resolver.py         resolve(program) -> ResolveResult; §2.8 checks + labels to indices
+    semantic.py         resolve(program) -> ResolveResult; §2.8 checks + labels to indices
     catalogs.py         single source of truth: ACTION_ARITY, FUNCTION_ARITY,
                         PERCEPTIONS (31), CONSTANTS, HEADER_KEYS (read by F3 and F6/F7)
     (ui/ lang/ world/ loaders/ sim/ as planned; only world/rng.py exists so far)
@@ -52,7 +52,7 @@ GUIA_AST_PARSER.md      local study guide (plain-Spanish AST+parser walkthrough,
 
 Two-stage front end → tree-walking interpreter (spec §5 forbids a bytecode VM in the base):
 
-1. `scanner.py` turns `.ins` text into tokens. **Line-oriented**: every line with
+1. `lexer.py` turns `.ins` text into tokens. **Line-oriented**: every line with
    tokens ends with a `NEWLINE` token; blank and `#`-comment-only lines emit nothing.
    Lexical errors are *collected* (several per file), each with its line, and the whole
    corrupt line is dropped so tokens never leak into the next line (panic mode).
@@ -64,7 +64,7 @@ Two-stage front end → tree-walking interpreter (spec §5 forbids a bytecode VM
    `parse()` returns `ParseResult(program, errors)` — **panic-mode**: collects several
    `ParseError`s per file, header lines recover per-line to avoid error cascades.
    Syntax only: no semantic checks (F3), no evaluation (F6). Every node carries `line`.
-3. `resolver.py` (F3) performs the compile-time checks of spec §2.8 that need no
+3. `semantic.py` (F3) performs the compile-time checks of spec §2.8 that need no
    simulation: header presence/order/ranges, `start:` present, duplicate/unknown
    labels (resolved to body indices, I12), assignment targets (D3: perceptions,
    constants, `see`/`name`), action/function catalog membership + exact arity.
@@ -122,7 +122,7 @@ Two-stage front end → tree-walking interpreter (spec §5 forbids a bytecode VM
   `tests/test_parser.py`; 64 tests green.
 - **Error messages now Spanish** (all 21 existing scanner/parser messages translated;
   tests updated in lockstep; catalog in `error-messages.md`).
-- **F3 done**: `catalogs.py` (shared name/arity tables) + `resolver.py` with the §2.8
+- **F3 done**: `catalogs.py` (shared name/arity tables) + `semantic.py` with the §2.8
   semantic checks + `tests/test_resolver.py`; 99 tests green.
 - **Next**: F4 (world model + `.te`/`.ob` loaders, parallel to the language track)
   and F6 (tree-walking interpreter over `ResolvedProgram`: PC, 100 lines/turn,
@@ -132,5 +132,5 @@ Two-stage front end → tree-walking interpreter (spec §5 forbids a bytecode VM
 ## Additional Context Files
 
 - `error-messages.md` — full catalog of every error message the project throws
-  (scanner, parser, resolver, plus slots reserved for F7 runtime / F8 map).
+  (lexer, parser, semantic, plus slots reserved for F7 runtime / F8 map).
   **Append new messages there when they are added.**

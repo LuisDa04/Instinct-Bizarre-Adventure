@@ -1,5 +1,5 @@
-from instinct.frontend.scanner import scan
-from instinct.frontend.tokens import TokenType
+from instinct.compiler.lexer import scan
+from instinct.compiler.tokens import TokenType
 
 
 def types(source: str) -> list[TokenType]:
