@@ -1,4 +1,4 @@
-<!-- Context: main@793547e -->
+<!-- Context: main@7e92dd3 -->
 # Repository Context
 
 Last updated: 2026-10-04
@@ -35,13 +35,15 @@ instinct/               Python package (phases F1+)
     semantic.py         resolve(program) -> ResolveResult; §2.8 checks + labels to indices
     catalogs.py         single source of truth: ACTION_ARITY, FUNCTION_ARITY,
                         PERCEPTIONS (31), CONSTANTS, HEADER_KEYS (read by F3 and F6/F7)
-    (ui/ lang/ world/ loaders/ sim/ as planned; only world/rng.py exists so far)
+    (ui/ lang/ sim/ as planned; world/ and loaders/ done in F4)
   lang/                 language runtime: actions/, functions, perceptions, interpreter (F6-F7)
-  world/                entities, world rules, perceptions, rng.py (seeded Rng)
-  loaders/              .te / .ob / .map / .ins loaders (F4, F8, F9)
+  world/                entities.py (Entity/Terrain/WorldObject/Creature),
+                        world.py (Cell grid, placement, walkable), rng.py (seeded Rng)
+  loaders/              errors.py (LoadError), definition.py (shared parser),
+                        terrain_loader.py, object_loader.py, registry.py (F4; .map/.ins in F8/F9)
   sim/                  engine.py tick loop + cli.py terminal runner (F5, F9)
   ui/                   Pygame app (F10)
-tests/                  pytest suite (99 tests: 4 scaffold + 24 scanner + 36 parser + 35 resolver)
+tests/                  pytest suite (147 tests: 4 scaffold + 24 lexer + 36 parser + 35 semantic + 24 world + 24 loaders)
 terrains/ objects/ maps/ creatures/   runtime content dirs the app loads (spec §4.1), .gitkeep placeholders
 PLAN.md                 the project plan (source of truth for decisions)
 instinct.md             the specification (do not edit)
@@ -104,7 +106,12 @@ Two-stage front end → tree-walking interpreter (spec §5 forbids a bytecode VM
   `test_resolver.py` (35 tests: one per §2.8 compile error with exact line+message,
     label→index resolution, header order/duplicate/unknown-key rules, calls checked
     inside conditions and action args, case-sensitivity, boundary values, and the
-    full §2.1 uruk example resolving end to end).
+    full §2.1 uruk example resolving end to end),
+  `test_world.py` (24 tests: I1/I2/I3 per placement call, walkable rules, hit
+    clamping at 0, regen capped at max, prototype cloning, creature header/age),
+  `test_loaders.py` (24 tests: Anexo grass/rock end to end, one per loader error
+    with exact line+message, `char #` not eaten as comment, I14 char clash,
+    partial-failure directory scan via `tmp_path`).
 - Tests assert **exact** `(line, message)` pairs, so every message change breaks the
   suite on purpose — that is the point: it makes message wording a reviewed decision.
 - Tests use inline `.ins` sources — the repo intentionally ships **no** example content
@@ -124,13 +131,19 @@ Two-stage front end → tree-walking interpreter (spec §5 forbids a bytecode VM
   tests updated in lockstep; catalog in `error-messages.md`).
 - **F3 done**: `catalogs.py` (shared name/arity tables) + `semantic.py` with the §2.8
   semantic checks + `tests/test_resolver.py`; 99 tests green.
-- **Next**: F4 (world model + `.te`/`.ob` loaders, parallel to the language track)
-  and F6 (tree-walking interpreter over `ResolvedProgram`: PC, 100 lines/turn,
-  `wait`, persistent variables, §2.6 perceptions). New messages must be added to
+- **F4 done**: `world/entities.py` (shared `hit()`, creature reserve = `health`)
+  + `world/world.py` (grid, cloning placement, `bool` placement rules) +
+  `loaders/` (shared definition parser, `.te`/`.ob` loaders, `Registry` with
+  I14 char uniqueness and partial-failure scan) + `tests/test_world.py` +
+  `tests/test_loaders.py`; 147 tests green. Decisions D9–D11 in `PLAN.md`.
+- **Next**: F5 (simulation engine: ticks, turn shuffle, end-of-tick §3.4, the
+  8 laws §2.7, single seeded RNG) and F6 (tree-walking interpreter over
+  `ResolvedProgram`: PC, 100 lines/turn, `wait`, persistent variables, §2.6
+  perceptions). New messages must be added to
   `error-messages.md` in the same commit.
 
 ## Additional Context Files
 
 - `error-messages.md` — full catalog of every error message the project throws
-  (lexer, parser, semantic, plus slots reserved for F7 runtime / F8 map).
+  (lexer, parser, semantic, loaders, plus slots reserved for F7 runtime / F8 map).
   **Append new messages there when they are added.**
