@@ -178,7 +178,43 @@ de **ejecución** (ictus, F7), aunque el argumento sea un literal.
 
 ---
 
-## 5. Pendientes (spec §2.8, PLAN §2) — aún NO implementados
+## 5. Loaders — `instinct/loaders/` (10 mensajes)
+
+`LoadError(line, message, path="")` hereda de `CompileError` (decisión **D9**):
+el formato es el mismo (`línea N: mensaje`); `.path` lo rellena el escaneo de
+directorios para el log por archivo (spec §4.1.1). Los dos formatos comparten
+el parser de `definition.py`: cada línea con contenido es `clave valor`; `#`
+solo vale como comentario a línea completa (decisión **D11**: así `char #` del
+`rock.ob` del Anexo sigue funcionando).
+
+### Primera línea y forma (spec §3.2)
+
+| Mensaje | Nace en | Cuándo |
+|---|---|---|
+| `la primera línea debe ser 'terrain Nombre'` | `_parse_first` | La primera línea con contenido no es `terrain Nombre` (`'object Nombre'` en `object_loader`) |
+| `línea inválida` | `_parse_entry` | La línea no es `clave valor` (1 token o 3+) |
+
+### Claves y valores
+
+| Mensaje | Nace en | Cuándo |
+|---|---|---|
+| `falta la clave 'regen'` | `parse_definition` | Clave obligatoria ausente (línea de la primera entrada; 1 si el archivo está vacío) |
+| `clave desconocida 'speed'` | `_parse_entry` | Clave fuera de las de su clase (`regen` en un `.ob` también cae aquí) |
+| `clave duplicada 'char'` | `_parse_entry` | Segunda aparición de la misma clave |
+| `el valor de 'resource_max' debe ser un entero` | `entry_int` | Valor no numérico |
+| `char debe ser un solo carácter` | `entry_char` | `char ab` |
+| `resource_max debe ser mayor o igual que 0` | `entry_range` | Valor negativo (decisión **D10**: 0 es legal) |
+| `regen debe ser mayor o igual que 0` | `entry_range` | Igual |
+
+### Registro (invariante I14, `registry.py`)
+
+| Mensaje | Nace en | Cuándo |
+|---|---|---|
+| `el char '.' ya está declarado por 'Grass'` | `_claim` | Otro archivo declara el mismo char (vale entre `.te` y `.ob`); se reporta en la línea del `char` del segundo archivo |
+
+---
+
+## 6. Pendientes (spec §2.8, PLAN §2) — aún NO implementados
 
 Estos mensajes **todavía no existen en el código**. Se anotan aquí para que F7 y
 F8 los formulen en español desde el principio, no para dar por hecho que existen.
@@ -195,6 +231,6 @@ lógico, texto donde se exige un número.
 ## 6. Tests
 
 Los tests afirman pares `(line, message)` **exactos** (`tests/test_scanner.py`,
-`tests/test_parser.py`, `tests/test_resolver.py`). Cambiar un mensaje es romper la suite a propósito: obliga a
+`tests/test_parser.py`, `tests/test_resolver.py`, `tests/test_loaders.py`). Cambiar un mensaje es romper la suite a propósito: obliga a
 revisar el texto en lugar de colarlo en silencio. Al traducir, se actualizan código y
 tests en el mismo commit.
