@@ -1,4 +1,4 @@
-<!-- Context: main@0aa362e -->
+<!-- Context: main@793547e -->
 # Catálogo de mensajes de error
 
 > **Regla del proyecto: todo mensaje de error va en español.** Quien los lee es el
@@ -12,7 +12,7 @@ fichero + la función.
 
 ---
 
-## 1. Forma común — `instinct/frontend/errors.py`
+## 1. Forma común — `instinct/compiler/errors.py`
 
 Toda excepción de compilación hereda de `CompileError(line, message)`, que formatea:
 
@@ -22,7 +22,7 @@ línea {line}: {message}
 
 | Clase | Cuándo |
 |---|---|
-| `LexError` | El scanner no puede convertir un trozo a token (`scanner.py`) |
+| `LexError` | El scanner no puede convertir un trozo a token (`lexer.py`) |
 | `ParseError` | Las fichas no encajan en ninguna forma de línea / no forman una expresión (`parser.py`) |
 | `SemanticError` | La forma es válida pero el significado no (F3: cabecera, etiquetas, catálogos) |
 
@@ -34,7 +34,7 @@ criatura muere.
 
 ---
 
-## 2. Scanner — `instinct/frontend/scanner.py` (3 mensajes)
+## 2. Scanner — `instinct/compiler/lexer.py` (3 mensajes)
 
 | Mensaje | Nace en | Cuándo |
 |---|---|---|
@@ -48,7 +48,7 @@ la de cierre.
 
 ---
 
-## 3. Parser — `instinct/frontend/parser.py` (18 mensajes)
+## 3. Parser — `instinct/compiler/parser.py` (18 mensajes)
 
 ### Cabecera (spec §2.2)
 
@@ -120,13 +120,13 @@ conservan para que el parser siga siendo correcto si alguien llama a los
 
 ---
 
-## 4. Resolver — `instinct/frontend/resolver.py` (15 mensajes)
+## 4. Resolver — `instinct/compiler/semantic.py` (15 mensajes)
 
 Solo se invoca si el parser devolvió un `Program` sin errores. Recoge varios
 `SemanticError` de una vez (cabecera → etiquetas → cuerpo, en ese orden) y
 devuelve `resolved=None` en cuanto hay uno solo: el archivo se rechaza entero.
 
-Los nombres y aridades válidos viven en `instinct/frontend/catalogs.py`
+Los nombres y aridades válidos viven en `instinct/compiler/catalogs.py`
 (`ACTION_ARITY`, `FUNCTION_ARITY`, `PERCEPTIONS`, `CONSTANTS`, `HEADER_KEYS`).
 
 ### Cabecera (spec §2.2)

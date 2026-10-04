@@ -77,7 +77,7 @@ División por cero · **resto por cero (decisión D2)** · lectura de variable n
 
 ```
 instinct/
-  frontend/   scanner.py, tokens.py, parser.py (Pratt), ast_nodes.py, resolver.py, errors.py
+  compiler/    lexer.py, tokens.py, parser.py (Pratt), ast_nodes.py, semantic.py, errors.py
   lang/       values.py, environment.py, actions/ (Action + 7 subclases), functions.py,
               perceptions.py, interpreter.py
   world/      entities.py (Terrain/Object/Creature), world.py, perceptions.py, rng.py
@@ -91,7 +91,7 @@ terrains/ objects/ maps/ creatures/   # dirs de carga que exige §4.1; contenido
 - Scanner → parser en dos pasos (ch. 6-7 / 14-15 de *Crafting Interpreters*); `line` desde el token hasta el error; panic-mode recovery para reportar varios errores.
 - Pratt parser mapeando 1:1 la tabla de precedencia de §2.5.
 - `Environment` dinámico por criatura con estado "no asignada aún" explícito.
-- Etiquetas resueltas en `resolver.py` → índices en la lista de instrucciones.
+- Etiquetas resueltas en `semantic.py` → índices en la lista de instrucciones.
 - Polimorfismo en acciones, AST, entidades y percepciones (§5): sin `if tipo == ...`.
 
 ---
@@ -103,7 +103,7 @@ terrains/ objects/ maps/ creatures/   # dirs de carga que exige §4.1; contenido
 | **F0** | Andamiaje, dirs de carga con `.gitkeep`, pytest, `rng` semillado |
 | **F1** | Scanner (tokens, líneas, comentarios, literales, reservadas) |
 | **F2** | AST + parser (Pratt §2.5, statements §2.3, cabecera §2.2) |
-| **F3** | `resolver.py`: chequeos de §2.8 + catálogos de acciones/funciones/percepciones |
+| **F3** | `semantic.py`: chequeos de §2.8 + catálogos de acciones/funciones/percepciones |
 | **F4** | Modelo de mundo + loaders `.te`/`.ob` |
 | **F5** | Motor de simulación: ticks, sorteo, fin de tick (§3.4), 8 leyes (§2.7), RNG |
 | **F6** | Intérprete (PC, 100 líneas, `wait`, variables) + percepciones §2.6 |

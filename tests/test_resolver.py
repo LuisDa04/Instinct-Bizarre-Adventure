@@ -1,7 +1,7 @@
-from instinct.frontend.errors import SemanticError
-from instinct.frontend.parser import parse
-from instinct.frontend.resolver import ResolvedProgram, resolve
-from instinct.frontend.scanner import scan
+from instinct.compiler.errors import SemanticError
+from instinct.compiler.parser import parse
+from instinct.compiler.semantic import ResolvedProgram, resolve
+from instinct.compiler.lexer import scan
 
 HEADER = (
     "creature Uruk\nfaction isengard\nhealth 80\nvision 6\nlifespan 400\nstart:\n"
