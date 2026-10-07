@@ -58,6 +58,7 @@ class Creature(Entity):
         self.program = program
         self.variables: dict[str, int | str] = {}
         self.pc = 0
+        self.wait_remaining: int = 0
 
     @property
     def health(self) -> int:
