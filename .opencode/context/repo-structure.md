@@ -1,7 +1,7 @@
-<!-- Context: main@7e92dd3 -->
+<!-- Context: main@9a6ebbf -->
 # Repository Context
 
-Last updated: 2026-10-04
+Last updated: 2026-10-07
 
 ## Tech Stack
 
@@ -35,15 +35,15 @@ instinct/               Python package (phases F1+)
     semantic.py         resolve(program) -> ResolveResult; §2.8 checks + labels to indices
     catalogs.py         single source of truth: ACTION_ARITY, FUNCTION_ARITY,
                         PERCEPTIONS (31), CONSTANTS, HEADER_KEYS (read by F3 and F6/F7)
-    (ui/ lang/ sim/ as planned; world/ and loaders/ done in F4)
+    (ui/ lang/ as planned; world/, loaders/ and sim/engine done in F4–F5)
   lang/                 language runtime: actions/, functions, perceptions, interpreter (F6-F7)
   world/                entities.py (Entity/Terrain/WorldObject/Creature),
                         world.py (Cell grid, placement, walkable), rng.py (seeded Rng)
   loaders/              errors.py (LoadError), definition.py (shared parser),
                         terrain_loader.py, object_loader.py, registry.py (F4; .map/.ins in F8/F9)
-  sim/                  engine.py tick loop + cli.py terminal runner (F5, F9)
+  sim/                  engine.py tick loop (F5 done: Engine + TickReport + WorldSnapshot) + cli.py terminal runner (F9)
   ui/                   Pygame app (F10)
-tests/                  pytest suite (147 tests: 4 scaffold + 24 lexer + 36 parser + 35 semantic + 24 world + 24 loaders)
+tests/                  pytest suite (160 tests: 4 scaffold + 24 lexer + 36 parser + 35 semantic + 24 world + 24 loaders + 13 engine)
 terrains/ objects/ maps/ creatures/   runtime content dirs the app loads (spec §4.1), .gitkeep placeholders
 PLAN.md                 the project plan (source of truth for decisions)
 instinct.md             the specification (do not edit)
@@ -74,9 +74,14 @@ Two-stage front end → tree-walking interpreter (spec §5 forbids a bytecode VM
    tables from `catalogs.py` so the interpreter (F6/F7) reuses the same source.
    Types, `dx`/`dy` range and unassigned reads are deliberately NOT checked here:
    §2.8 lists them as execution errors (ictus, F7).
-4. `sim/engine.py` owns the RNG, shuffles turn order per tick, refreshes perceptions
-   and interprets each creature from its saved program counter (spec §2.7).
-   Only the engine talks to the interpreter; UI and CLI are clients of `step()/state()`.
+4. `sim/engine.py` (F5 done) owns the single `Rng`, shuffles a snapshot copy of the
+   turn order per tick, honors `wait_remaining` and the `_pending` newborn queue
+   (spec §2.7 laws 1+8), applies end-of-tick E1→E2→E3→E4 (§3.4) and returns a
+   frozen `TickReport`. Turn contents run through the `set_turn_runner()` hook
+   (no-op until F6 plugs the interpreter); perception refresh, the 100-line cap
+   and the 7 actions are deliberately absent. Only the engine talks to the
+   interpreter; UI and CLI are clients of `step()/state()` (`state()` returns a
+   frozen `WorldSnapshot` with no live references, no `_cells`, no RNG).
 
 ## Conventions & Patterns
 
@@ -111,7 +116,10 @@ Two-stage front end → tree-walking interpreter (spec §5 forbids a bytecode VM
     clamping at 0, regen capped at max, prototype cloning, creature header/age),
   `test_loaders.py` (24 tests: Anexo grass/rock end to end, one per loader error
     with exact line+message, `char #` not eaten as comment, I14 char clash,
-    partial-failure directory scan via `tmp_path`).
+    partial-failure directory scan via `tmp_path`),
+  `test_engine.py` (13 tests: E1–E4 order, L1 shuffle determinism incl. order,
+    L8 newborn waits a tick incl. mid-tick queueing, sleeping still ages,
+    `state()` read-only and frozen; adds no user-facing messages).
 - Tests assert **exact** `(line, message)` pairs, so every message change breaks the
   suite on purpose — that is the point: it makes message wording a reviewed decision.
 - Tests use inline `.ins` sources — the repo intentionally ships **no** example content
@@ -136,10 +144,14 @@ Two-stage front end → tree-walking interpreter (spec §5 forbids a bytecode VM
   `loaders/` (shared definition parser, `.te`/`.ob` loaders, `Registry` with
   I14 char uniqueness and partial-failure scan) + `tests/test_world.py` +
   `tests/test_loaders.py`; 147 tests green. Decisions D9–D11 in `PLAN.md`.
-- **Next**: F5 (simulation engine: ticks, turn shuffle, end-of-tick §3.4, the
-  8 laws §2.7, single seeded RNG) and F6 (tree-walking interpreter over
-  `ResolvedProgram`: PC, 100 lines/turn, `wait`, persistent variables, §2.6
-  perceptions). New messages must be added to
+- **F5 done**: `sim/engine.py` (`Engine` + frozen `TickReport`/`WorldSnapshot`,
+  snapshot+shuffle turn order, `wait_remaining` countdown, `_pending` newborn queue
+  by identity, `births` counted post-turns, `set_turn_runner()` hook for F6) +
+  `Creature.wait_remaining = 0` in `world/entities.py` + `tests/test_engine.py`;
+  160 tests green. Decisions D12–D14 in `PLAN.md`.
+- **Next**: F6 (tree-walking interpreter over `ResolvedProgram`: PC, 100 lines/turn,
+  `wait`, persistent variables, §2.6 perceptions, plugged via
+  `Engine.set_turn_runner()`). New messages must be added to
   `error-messages.md` in the same commit.
 
 ## Additional Context Files
