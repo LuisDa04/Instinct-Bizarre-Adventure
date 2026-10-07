@@ -1,4 +1,4 @@
-<!-- Context: main@793547e -->
+<!-- Context: main@9a6ebbf -->
 # Catálogo de mensajes de error
 
 > **Regla del proyecto: todo mensaje de error va en español.** Quien los lee es el
@@ -219,6 +219,9 @@ solo vale como comentario a línea completa (decisión **D11**: así `char #` de
 Estos mensajes **todavía no existen en el código**. Se anotan aquí para que F7 y
 F8 los formulen en español desde el principio, no para dar por hecho que existen.
 
+F5 no añade ningún mensaje: el motor solo orquesta (ticks, sorteo, fin de tick) y
+no reporta errores de usuario.
+
 **F7 — ejecución** (dan ictus, la criatura muere, van a los logs con su línea):
 división por cero, resto por cero (decisión **D2**: también ictus), lectura de variable
 no asignada, `dx`/`dy` fuera de `{-1, 0, 1}`, mezclar entero y texto en un operador no
@@ -233,4 +236,5 @@ lógico, texto donde se exige un número.
 Los tests afirman pares `(line, message)` **exactos** (`tests/test_scanner.py`,
 `tests/test_parser.py`, `tests/test_resolver.py`, `tests/test_loaders.py`). Cambiar un mensaje es romper la suite a propósito: obliga a
 revisar el texto en lugar de colarlo en silencio. Al traducir, se actualizan código y
-tests en el mismo commit.
+tests en el mismo commit. (`tests/test_engine.py` no afirma mensajes: el motor F5 no
+emite ninguno.)
