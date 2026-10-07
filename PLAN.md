@@ -100,12 +100,12 @@ terrains/ objects/ maps/ creatures/   # dirs de carga que exige §4.1; contenido
 
 | Fase | Contenido |
 |---|---|
-| **F0** | Andamiaje, dirs de carga con `.gitkeep`, pytest, `rng` semillado |
-| **F1** | Scanner (tokens, líneas, comentarios, literales, reservadas) |
-| **F2** | AST + parser (Pratt §2.5, statements §2.3, cabecera §2.2) |
-| **F3** | `semantic.py`: chequeos de §2.8 + catálogos de acciones/funciones/percepciones |
-| **F4** | Modelo de mundo + loaders `.te`/`.ob` |
-| **F5** | Motor de simulación: ticks, sorteo, fin de tick (§3.4), 8 leyes (§2.7), RNG |
+| **F0** ✅ | Andamiaje, dirs de carga con `.gitkeep`, pytest, `rng` semillado |
+| **F1** ✅ | Scanner (tokens, líneas, comentarios, literales, reservadas) |
+| **F2** ✅ | AST + parser (Pratt §2.5, statements §2.3, cabecera §2.2) |
+| **F3** ✅ | `semantic.py`: chequeos de §2.8 + catálogos de acciones/funciones/percepciones |
+| **F4** ✅ | Modelo de mundo + loaders `.te`/`.ob` |
+| **F5** ✅ | Motor de simulación: ticks, sorteo, fin de tick (§3.4), 8 leyes (§2.7), RNG |
 | **F6** | Intérprete (PC, 100 líneas, `wait`, variables) + percepciones §2.6 |
 | **F7** | Las 7 acciones + errores de ejecución |
 | **F8** | Loader `.map` + rechazo por char + colocación |
@@ -121,6 +121,10 @@ F0 ─▶ F4 ─────────────▶ F5 ──┘        │
                           F4 ─▶ F8 ───┘
 todas ─▶ F11 (tests continuos)
 ```
+
+### Estado
+
+F0–F5 implementadas con suite verde (160 tests, 2026-10-07). Siguiente: F6 (intérprete).
 
 ---
 
@@ -165,5 +169,8 @@ todas ─▶ F11 (tests continuos)
 | **D9** | Error de carga `.te`/`.ob` | **`LoadError(CompileError)` + `.path` opcional** para el log por archivo | §4.1.1 «se reporta con su error y su línea»; un solo árbol de errores y formato `línea N: mensaje` ya testeado |
 | **D10** | Rangos `resource_max`/`regen` | **`>= 0`** (solo los negativos son error) | §3.2 no los fija; `resource_max 0` = terreno estéril u objeto sin reserva inicial |
 | **D11** | Comentarios en `.te`/`.ob` | **Sí, a línea completa** (primer carácter no vacío `#`) | Robustez con ficheros ajenos; no rompe `char #` del `rock.ob` del Anexo |
+| **D12** | Contador de `wait` | **`wait_remaining` vive en `Creature`** (junto a `pc`/`variables`); el motor solo lo decrementa y salta el turno | §2.7.4: dormir no protege de vida/edad/muerte; F6 escribirá el contador |
+| **D13** | Reportes del motor | **`TickReport`/`WorldSnapshot` congelados** (`frozen=True`, tuplas); `order` guarda coordenadas pre-turno; `state()` no expone `_cells` ni el RNG | §5: solo `step()/state()` hablan con UI/CLI; la traza no se puede mutar |
+| **D14** | Nacidas y hook de turno | **`births` se cuenta tras los turnos** (incluye encoladas mid-tick por el futuro `reproduce`); `_pending` se filtra por identidad; **`set_turn_runner()`** es el hueco donde F6 conectará el intérprete | §2.7.8 (cría actúa al tick siguiente); F5 no ejecuta ni evalúa nada |
 
 **Pendientes menores (no bloqueantes):** textos/estética de la UI, cuántas extensiones JoJo se implementan (mínimo viable: ejemplos de `.ins`/`.te`/`.ob`/`.map` que usen solo la base).
