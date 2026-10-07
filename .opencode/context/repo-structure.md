@@ -95,7 +95,9 @@ Two-stage front end → tree-walking interpreter (spec §5 forbids a bytecode VM
 - **Naming**: modules snake_case, packages no `__init__` content; English identifiers,
   Spanish docs **and** Spanish error text.
 - **Docs/plan language**: `PLAN.md` and commit bodies in English; spec citations use `§N`.
-- **Comments**: none in code (project rule); spec citations live in `PLAN.md`.
+- **Comments**: every class and method carries a Spanish docstring (hover-readable:
+  one-line summary first, `Args:`/`Returns:` only when non-obvious); spec
+  citations live in `PLAN.md`, never in docstrings.
 - **Commits**: atomic, conventional prefixes (`docs:`, `feat:`, `chore:`), why not what.
 - **Content files**: `.ins` creatures, `.te` terrains, `.ob` objects, `.map` maps.
 

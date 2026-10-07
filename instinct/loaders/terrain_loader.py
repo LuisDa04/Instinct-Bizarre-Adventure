@@ -1,3 +1,4 @@
+"""Carga de terrenos desde texto con claves char, resource_max y regen."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -11,12 +12,25 @@ TERRAIN_KEYS: tuple[str, ...] = ("char", "resource_max", "regen")
 
 @dataclass(frozen=True)
 class TerrainResult:
+    """Representa el resultado de cargar un terreno: instancia o None más errores.
+
+    Invariante: terrain es None si hubo errores; char_line es 1 cuando falla.
+    """
+
     terrain: Terrain | None
     char_line: int
     errors: list[LoadError]
 
 
 def load_terrain(source: str) -> TerrainResult:
+    """Carga un terreno desde su texto y devuelve el resultado con sus errores.
+
+    Args:
+        source: Texto con cabecera 'terrain Nombre' y claves char, resource_max y regen.
+
+    Returns:
+        TerrainResult con terrain válido y errores vacíos, o terrain None y errores no vacíos.
+    """
     name, entries, errors = parse_definition(source, "terrain", TERRAIN_KEYS)
     char = entry_char(entries.get("char"), errors)
     resource_max = entry_range(entries.get("resource_max"), errors)

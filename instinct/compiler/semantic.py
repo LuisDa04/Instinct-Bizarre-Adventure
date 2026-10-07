@@ -1,3 +1,5 @@
+"""Valida el programa y produce su forma resuelta con etiquetas y cabecera."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -25,6 +27,18 @@ from .errors import SemanticError
 
 @dataclass(frozen=True)
 class ResolvedProgram(Node):
+    """Programa validado con cabecera tipada, cuerpo y tabla de etiquetas.
+
+    Attributes:
+        name: Nombre de la criatura declarado en la cabecera.
+        faction: Facción declarada en la cabecera.
+        health: Salud inicial, siempre mayor que 0.
+        vision: Alcance de visión, siempre mayor o igual que 1.
+        lifespan: Duración de vida, siempre mayor que 0.
+        body: Sentencias del cuerpo en orden de ejecución.
+        labels: Tabla de etiqueta a índice de sentencia en el cuerpo.
+    """
+
     name: str
     faction: str
     health: int
@@ -36,17 +50,36 @@ class ResolvedProgram(Node):
 
 @dataclass(frozen=True)
 class ResolveResult:
+    """Resultado inmutable con programa resuelto o lista de errores.
+
+    Attributes:
+        resolved: Programa resuelto o None si hubo errores.
+        errors: Errores semánticos; vacía si la resolución fue válida.
+    """
+
     resolved: ResolvedProgram | None
     errors: list[SemanticError]
 
 
 class _Resolver:
+    """Valida cabecera, etiquetas y llamadas acumulando errores sin abortar."""
+
     def __init__(self, program: Program) -> None:
+        """Inicializa el validador con el programa sintáctico a resolver.
+
+        Args:
+            program: Programa con cabecera y cuerpo salidos del analizador.
+        """
         self._program = program
         self._errors: list[SemanticError] = []
         self._labels: dict[str, int] = {}
 
     def resolve(self) -> ResolveResult:
+        """Valida todo el programa y devuelve su forma resuelta o los errores.
+
+        Returns:
+            Programa resuelto o None con los errores acumulados.
+        """
         spec = self._check_header()
         self._collect_labels()
         self._check_body()
@@ -68,9 +101,20 @@ class _Resolver:
         )
 
     def _error(self, line: int, message: str) -> None:
+        """Registra un error semántico con su línea.
+
+        Args:
+            line: Línea (1-based) donde se detectó el error.
+            message: Descripción del fallo sin prefijo de línea.
+        """
         self._errors.append(SemanticError(line, message))
 
     def _check_header(self) -> tuple[str, str, int, int, int] | None:
+        """Valida claves, orden y rangos de la cabecera y extrae sus valores.
+
+        Returns:
+            Tupla (nombre, facción, salud, visión, vida) o None si hay errores.
+        """
         entries = self._program.header.entries
         seen: dict[str, HeaderEntry] = {}
         for entry in entries:
@@ -105,6 +149,14 @@ class _Resolver:
         return (name, faction, health, vision, lifespan)
 
     def _header_text(self, entry: HeaderEntry | None) -> str | None:
+        """Extrae un valor de texto de la cabecera o registra error.
+
+        Args:
+            entry: Entrada de cabecera o None si la clave falta.
+
+        Returns:
+            Texto de la entrada o None si falta o no es texto.
+        """
         if entry is None:
             return None
         if not isinstance(entry.value, str):
@@ -113,6 +165,15 @@ class _Resolver:
         return entry.value
 
     def _header_range(self, entry: HeaderEntry | None, message: str) -> int | None:
+        """Extrae un entero mayor o igual que 1 de la cabecera o registra error.
+
+        Args:
+            entry: Entrada de cabecera o None si la clave falta.
+            message: Mensaje a usar si el valor queda fuera de rango.
+
+        Returns:
+            Entero validado o None si falta, no es entero o es menor que 1.
+        """
         if entry is None:
             return None
         if not isinstance(entry.value, int):
@@ -124,6 +185,7 @@ class _Resolver:
         return entry.value
 
     def _collect_labels(self) -> None:
+        """Construye la tabla de etiquetas y exige `start:` sin duplicados."""
         for index, statement in enumerate(self._program.body):
             if isinstance(statement, Label):
                 if statement.name in self._labels:
@@ -136,6 +198,7 @@ class _Resolver:
             self._error(self._program.line, "falta la etiqueta 'start:'")
 
     def _check_body(self) -> None:
+        """Comprueba destinos de salto, asignaciones y acciones del cuerpo."""
         for statement in self._program.body:
             if isinstance(statement, Goto):
                 self._check_target(statement.label, statement.line)
@@ -149,10 +212,22 @@ class _Resolver:
                 self._check_action(statement)
 
     def _check_target(self, label: str, line: int) -> None:
+        """Comprueba que la etiqueta destino exista.
+
+        Args:
+            label: Nombre de la etiqueta destino del salto.
+            line: Línea (1-based) del salto a comprobar.
+        """
         if label not in self._labels:
             self._error(line, f"salto a etiqueta inexistente {label!r}")
 
     def _check_assign_target(self, name: str, line: int) -> None:
+        """Rechaza asignar a percepciones, constantes y funciones.
+
+        Args:
+            name: Nombre de la variable destino de la asignación.
+            line: Línea (1-based) de la asignación.
+        """
         if name in PERCEPTIONS:
             self._error(line, f"no se puede asignar a la percepción {name!r}")
         elif name in CONSTANTS:
@@ -161,6 +236,11 @@ class _Resolver:
             self._error(line, f"no se puede asignar a la función {name!r}")
 
     def _check_action(self, action: ActionCall) -> None:
+        """Comprueba que la acción exista y reciba el número de argumentos.
+
+        Args:
+            action: Llamada a acción como sentencia a validar.
+        """
         expected = ACTION_ARITY.get(action.name)
         if expected is None:
             self._error(action.line, f"acción desconocida {action.name!r}")
@@ -173,6 +253,11 @@ class _Resolver:
             self._check_expr(argument)
 
     def _check_expr(self, expr: Expr) -> None:
+        """Comprueba funciones llamadas y recorre operandos de la expresión.
+
+        Args:
+            expr: Expresión a validar de forma recursiva.
+        """
         if isinstance(expr, Call):
             expected = FUNCTION_ARITY.get(expr.callee)
             if expected is None:
@@ -195,9 +280,28 @@ class _Resolver:
             self._check_expr(expr.inner)
 
     def _arity_message(self, kind: str, name: str, expected: int, given: int) -> str:
+        """Compone el mensaje de aridad esperada frente a recibida.
+
+        Args:
+            kind: Tipo de invocación, `acción` o `función`.
+            name: Nombre de la acción o función comprobada.
+            expected: Número de argumentos esperado (0 o más).
+            given: Número de argumentos recibido (0 o más).
+
+        Returns:
+            Mensaje con la aridad esperada y la recibida.
+        """
         noun = "argumento" if expected == 1 else "argumentos"
         return f"la {kind} {name!r} espera {expected} {noun}, no {given}"
 
 
 def resolve(program: Program) -> ResolveResult:
+    """Valida el programa y devuelve su forma resuelta o los errores.
+
+    Args:
+        program: Programa con cabecera y cuerpo salidos del analizador.
+
+    Returns:
+        Programa resuelto o None con los errores semánticos.
+    """
     return _Resolver(program).resolve()

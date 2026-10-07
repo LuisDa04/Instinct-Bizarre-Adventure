@@ -1,3 +1,13 @@
+"""Catálogos fijos del lenguaje con nombres y aridades válidas.
+
+ACTION_ARITY: acciones como sentencia con su número de argumentos.
+FUNCTION_ARITY: funciones de expresión con su número de argumentos.
+PERCEPTIONS: variables de solo lectura que describen estado y entorno.
+CONSTANTS: valores simbólicos comparables en expresiones.
+READ_ONLY_NAMES: unión de percepciones, constantes y funciones no asignables.
+HEADER_KEYS: claves obligatorias de la cabecera en su orden esperado.
+"""
+
 from __future__ import annotations
 
 ACTION_ARITY: dict[str, int] = {

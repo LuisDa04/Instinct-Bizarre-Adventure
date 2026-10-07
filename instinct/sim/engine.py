@@ -1,3 +1,4 @@
+"""Motor de simulación por ticks con orden aleatorio y envejecimiento."""
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -10,6 +11,11 @@ from instinct.world.world import World
 
 @dataclass(frozen=True)
 class TickReport:
+    """Representa el resumen de un tick: número, muertes, nacimientos y orden de turno.
+
+    Invariante: order trae posiciones al inicio en orden de actuación, sin recién nacidos.
+    """
+
     tick: int
     deaths: int
     births: int
@@ -18,6 +24,11 @@ class TickReport:
 
 @dataclass(frozen=True)
 class WorldSnapshot:
+    """Representa una foto inmutable del mundo: tick, tamaño y criaturas como tuplas.
+
+    Invariante: creatures guarda (nombre, facción, x, y, salud, edad) sin referencias vivas.
+    """
+
     tick: int
     width: int
     height: int
@@ -25,7 +36,18 @@ class WorldSnapshot:
 
 
 class Engine:
+    """Representa el motor que avanza el mundo tick a tick con semilla fija.
+
+    Invariante: cada tick corre turnos, cobra vida y edad, retira muertes, regenera y suma nacidos.
+    """
+
     def __init__(self, world: World, seed: int = 0) -> None:
+        """Crea el motor sobre un mundo existente con la semilla dada.
+
+        Args:
+            world: Mundo a simular; se guarda por referencia, no se clona.
+            seed: Semilla del orden aleatorio de turnos.
+        """
         self._world = world
         self._rng = Rng(seed)
         self._tick = 0
@@ -34,15 +56,31 @@ class Engine:
 
     @property
     def tick(self) -> int:
+        """Devuelve el número de ticks ya ejecutados."""
         return self._tick
 
     def set_turn_runner(self, runner: Callable[[Creature], bool] | None) -> None:
+        """Asigna la función que ejecuta el turno de cada criatura, o None para desactivarla.
+
+        Args:
+            runner: Recibe cada criatura por referencia; su valor devuelto se ignora.
+        """
         self._turn_runner = runner
 
     def queue_newborn(self, creature: Creature) -> None:
+        """Encola una criatura nacida en este tick para que actúe desde el siguiente.
+
+        Args:
+            creature: Se guarda por referencia y cuenta como nacimiento al cerrar el tick.
+        """
         self._pending.append(creature)
 
     def state(self) -> WorldSnapshot:
+        """Devuelve una foto inmutable del mundo que no expone sus estructuras internas.
+
+        Returns:
+            WorldSnapshot con tuplas copiadas; modificarla no altera al mundo.
+        """
         entries: list[tuple[str, str, int, int, int, int]] = []
         for creature in self._world.creatures():
             entries.append(
@@ -63,6 +101,13 @@ class Engine:
         )
 
     def step(self) -> TickReport:
+        """Avanza un tick completo y devuelve su resumen.
+
+        Orden de fin de tick: coste de vida y edad, muertes, regeneración, limpieza y nacidos.
+
+        Returns:
+            TickReport con el nuevo tick, muertes, nacimientos y orden de actuación.
+        """
         pending_ids = {id(creature) for creature in self._pending}
         snapshot = [
             creature
@@ -112,6 +157,11 @@ class Engine:
         )
 
     def _find_creature(self, target: Creature) -> tuple[int, int] | None:
+        """Busca la posición actual de una criatura desplazada o devuelve None.
+
+        Returns:
+            Tupla (x, y) donde está target, o None si ya no está en el mundo.
+        """
         for y in range(self._world.height):
             for x in range(self._world.width):
                 if self._world.creature_at(x, y) is target:

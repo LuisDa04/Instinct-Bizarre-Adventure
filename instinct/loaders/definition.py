@@ -1,3 +1,4 @@
+"""Análisis genérico de ficheros de definición clave-valor por líneas."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -7,6 +8,8 @@ from .errors import LoadError
 
 @dataclass(frozen=True)
 class Entry:
+    """Representa una entrada clave-valor con su número de línea (1-based)."""
+
     key: str
     value: str
     line: int
@@ -15,6 +18,19 @@ class Entry:
 def parse_definition(
     source: str, keyword: str, keys: tuple[str, ...]
 ) -> tuple[str | None, dict[str, Entry], list[LoadError]]:
+    """Analiza un texto con cabecera 'keyword Nombre' y líneas 'clave valor'.
+
+    Ignora líneas vacías y comentarios que empiezan por '#'.
+
+    Args:
+        source: Texto completo a analizar.
+        keyword: Palabra esperada en la primera línea (p. ej. 'terrain').
+        keys: Claves obligatorias que deben aparecer una vez.
+
+    Returns:
+        Tupla (nombre, entradas, errores): nombre es None si la cabecera es inválida;
+        entradas solo trae la primera aparición válida de cada clave conocida.
+    """
     errors: list[LoadError] = []
     significant = [
         (number, text)
@@ -35,6 +51,15 @@ def parse_definition(
 
 
 def entry_int(entry: Entry | None, errors: list[LoadError]) -> int | None:
+    """Convierte el valor de la entrada a entero o registra un error y devuelve None.
+
+    Args:
+        entry: Entrada a convertir; None significa clave ausente y no genera error.
+        errors: Lista donde se añade el error si el valor no es entero.
+
+    Returns:
+        El entero convertido, o None si falta la entrada o no es entero.
+    """
     if entry is None:
         return None
     try:
@@ -47,6 +72,15 @@ def entry_int(entry: Entry | None, errors: list[LoadError]) -> int | None:
 
 
 def entry_range(entry: Entry | None, errors: list[LoadError]) -> int | None:
+    """Convierte el valor a entero >= 0 o registra un error y devuelve None.
+
+    Args:
+        entry: Entrada a convertir; None significa clave ausente y no genera error.
+        errors: Lista donde se añade el error si no es entero o es negativo.
+
+    Returns:
+        El entero validado, o None si falta la entrada o está fuera de rango.
+    """
     if entry is None:
         return None
     value = entry_int(entry, errors)
@@ -61,6 +95,15 @@ def entry_range(entry: Entry | None, errors: list[LoadError]) -> int | None:
 
 
 def entry_char(entry: Entry | None, errors: list[LoadError]) -> str | None:
+    """Valida que el valor sea un solo carácter o registra un error y devuelve None.
+
+    Args:
+        entry: Entrada a validar; None significa clave ausente y no genera error.
+        errors: Lista donde se añade el error si no mide exactamente un carácter.
+
+    Returns:
+        El carácter validado, o None si falta la entrada o es inválida.
+    """
     if entry is None:
         return None
     if len(entry.value) != 1:
@@ -72,6 +115,11 @@ def entry_char(entry: Entry | None, errors: list[LoadError]) -> str | None:
 def _parse_first(
     line: tuple[int, str], keyword: str, errors: list[LoadError]
 ) -> str | None:
+    """Extrae el nombre de la primera línea 'keyword Nombre' o registra un error.
+
+    Returns:
+        El nombre encontrado, o None si la línea no trae exactamente esas dos palabras.
+    """
     number, text = line
     tokens = text.split()
     if len(tokens) != 2 or tokens[0] != keyword:
@@ -89,6 +137,10 @@ def _parse_entry(
     entries: dict[str, Entry],
     errors: list[LoadError],
 ) -> None:
+    """Valida una línea 'clave valor' y la guarda si es nueva y conocida.
+
+    Solo acepta exactamente dos palabras; la primera aparición válida gana y el resto da error.
+    """
     tokens = text.split()
     if len(tokens) != 2:
         errors.append(LoadError(number, "línea inválida"))
