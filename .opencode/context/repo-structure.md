@@ -1,7 +1,7 @@
-<!-- Context: main@9a6ebbf -->
+<!-- Context: main@16aa9fd -->
 # Repository Context
 
-Last updated: 2026-10-07
+Last updated: 2026-10-10
 
 ## Tech Stack
 
@@ -35,7 +35,8 @@ instinct/               Python package (phases F1+)
     semantic.py         resolve(program) -> ResolveResult; §2.8 checks + labels to indices
     catalogs.py         single source of truth: ACTION_ARITY, FUNCTION_ARITY,
                         PERCEPTIONS (31), CONSTANTS, HEADER_KEYS (read by F3 and F6/F7)
-    (ui/ lang/ as planned; world/, loaders/ and sim/engine done in F4–F5)
+    (lang/ runtime done in F6: values, environment, actions/, functions, perceptions,
+     interpreter; world/perceptions.py sensors; ui/ as planned; world/, loaders/ and sim/engine done in F4–F5)
   lang/                 language runtime: actions/, functions, perceptions, interpreter (F6-F7)
   world/                entities.py (Entity/Terrain/WorldObject/Creature),
                         world.py (Cell grid, placement, walkable), rng.py (seeded Rng)
@@ -43,7 +44,7 @@ instinct/               Python package (phases F1+)
                         terrain_loader.py, object_loader.py, registry.py (F4; .map/.ins in F8/F9)
   sim/                  engine.py tick loop (F5 done: Engine + TickReport + WorldSnapshot) + cli.py terminal runner (F9)
   ui/                   Pygame app (F10)
-tests/                  pytest suite (160 tests: 4 scaffold + 24 lexer + 36 parser + 35 semantic + 24 world + 24 loaders + 13 engine)
+tests/                  pytest suite (184 tests: 4 scaffold + 24 lexer + 36 parser + 35 semantic + 24 world + 24 loaders + 13 engine + 24 interpreter)
 terrains/ objects/ maps/ creatures/   runtime content dirs the app loads (spec §4.1), .gitkeep placeholders
 PLAN.md                 the project plan (source of truth for decisions)
 instinct.md             the specification (do not edit)
@@ -151,10 +152,18 @@ Two-stage front end → tree-walking interpreter (spec §5 forbids a bytecode VM
   by identity, `births` counted post-turns, `set_turn_runner()` hook for F6) +
   `Creature.wait_remaining = 0` in `world/entities.py` + `tests/test_engine.py`;
   160 tests green. Decisions D12–D14 in `PLAN.md`.
-- **Next**: F6 (tree-walking interpreter over `ResolvedProgram`: PC, 100 lines/turn,
-  `wait`, persistent variables, §2.6 perceptions, plugged via
-  `Engine.set_turn_runner()`). New messages must be added to
-  `error-messages.md` in the same commit.
+- **F6 done**: `lang/` runtime (`errors.py` with `ExecutionError`, `values.py` with
+  §2.5 type rules, `environment.py` name resolution, `actions/` with `Action` base +
+  `Wait` + registry, `functions.py` with `see`/`name`, `perceptions.py` with frozen
+  `TurnFrame` + 31 resolvers mirroring `catalogs.PERCEPTIONS`) + `world/perceptions.py`
+  (Chebyshev sensors, D4 tie-break, self excluded per D15) + `lang/interpreter.py`
+  (PC resume, 100-line cap counting labels per D17, EOF wraps next turn, `wait(n)`
+  countdown, `ExecutionError` detection without ictus policy per D18) + engine
+  wiring (`perception_random()` per D19, roar buffer published end-of-tick per
+  D5/D20, `Creature.pc` starts at `labels["start"]`) + `tests/test_interpreter.py`;
+  184 tests green. Decisions D15–D20 in `PLAN.md`.
+- **Next**: F7 (remaining 6 action subclasses + ictus kill+log policy; map loader
+  is F8). New messages must be added to `error-messages.md` in the same commit.
 
 ## Additional Context Files
 

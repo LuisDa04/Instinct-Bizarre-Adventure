@@ -102,7 +102,8 @@ class Creature(Entity):
         """Crea una criatura en (x, y) con salud, edad y estado de turno iniciales.
 
         Args:
-            program: Programa resuelto; se guarda por referencia, no se clona.
+            program: Programa resuelto con `start:` (lo garantiza el resolver);
+                se guarda por referencia, no se clona.
             x: Columna inicial.
             y: Fila inicial.
         """
@@ -116,7 +117,7 @@ class Creature(Entity):
         self.y = y
         self.program = program
         self.variables: dict[str, int | str] = {}
-        self.pc = 0
+        self.pc = program.labels["start"]
         self.wait_remaining: int = 0
 
     @property

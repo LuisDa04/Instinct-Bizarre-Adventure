@@ -23,6 +23,18 @@ class TickReport:
 
 
 @dataclass(frozen=True)
+class Roar:
+    """Rugido publicado al cerrar un tick: texto y oyentes por identidad.
+
+    Invariante: listeners trae id() de criaturas vivas a distancia Chebyshev
+    menor o igual que su propia visión desde la posición de emisión.
+    """
+
+    text: str
+    listeners: frozenset[int]
+
+
+@dataclass(frozen=True)
 class WorldSnapshot:
     """Representa una foto inmutable del mundo: tick, tamaño y criaturas como tuplas.
 
@@ -53,6 +65,8 @@ class Engine:
         self._tick = 0
         self._pending: list[Creature] = []
         self._turn_runner: Callable[[Creature], bool] | None = None
+        self._emitted: list[tuple[int, int, str]] = []
+        self._heard: list[Roar] = []
 
     @property
     def tick(self) -> int:
@@ -66,6 +80,38 @@ class Engine:
             runner: Recibe cada criatura por referencia; su valor devuelto se ignora.
         """
         self._turn_runner = runner
+
+    def perception_random(self) -> int:
+        """Devuelve un entero en [0, 99] del único RNG para la percepción `random`.
+
+        Returns:
+            Tirada del generador compartido con el sorteo de turnos (I8).
+        """
+        return self._rng.perception_random()
+
+    def emit_roar(self, x: int, y: int, text: str) -> None:
+        """Encola un rugido emitido en este tick para oírlo en el siguiente (D5).
+
+        Args:
+            x: Columna de emisión.
+            y: Fila de emisión.
+            text: Texto rugido ya convertido a cadena.
+        """
+        self._emitted.append((x, y, text))
+
+    def heard_roars(self, creature: Creature) -> tuple[int, str]:
+        """Devuelve lo que la criatura oyó del tick anterior.
+
+        Args:
+            creature: Criatura que pregunta, por identidad.
+
+        Returns:
+            Tupla (cantidad, último texto) o (0, "") si no oyó nada.
+        """
+        heard = [roar.text for roar in self._heard if id(creature) in roar.listeners]
+        if not heard:
+            return (0, "")
+        return (len(heard), heard[-1])
 
     def queue_newborn(self, creature: Creature) -> None:
         """Encola una criatura nacida en este tick para que actúe desde el siguiente.
@@ -139,6 +185,7 @@ class Engine:
                     if missing is not None:
                         self._world.remove_creature(missing[0], missing[1])
                         deaths += 1
+        self._publish_roars()
         for y in range(self._world.height):
             for x in range(self._world.width):
                 terrain = self._world.terrain_at(x, y)
@@ -155,6 +202,23 @@ class Engine:
         return TickReport(
             tick=self._tick, deaths=deaths, births=births, order=order
         )
+
+    def _publish_roars(self) -> None:
+        """Publica los rugidos del tick para oírlos en el siguiente y vacía la cola.
+
+        Los oyentes se calculan con las criaturas vivas: cada una oye lo emitido
+        a distancia Chebyshev menor o igual que su propia visión (D5).
+        """
+        published: list[Roar] = []
+        for x, y, text in self._emitted:
+            listeners = frozenset(
+                id(creature)
+                for creature in self._world.creatures()
+                if max(abs(creature.x - x), abs(creature.y - y)) <= creature.vision
+            )
+            published.append(Roar(text=text, listeners=listeners))
+        self._heard = published
+        self._emitted = []
 
     def _find_creature(self, target: Creature) -> tuple[int, int] | None:
         """Busca la posición actual de una criatura desplazada o devuelve None.
