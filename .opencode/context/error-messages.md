@@ -1,4 +1,4 @@
-<!-- Context: main@9a6ebbf -->
+<!-- Context: main@16aa9fd -->
 # Catálogo de mensajes de error
 
 > **Regla del proyecto: todo mensaje de error va en español.** Quien los lee es el
@@ -25,6 +25,7 @@ línea {line}: {message}
 | `LexError` | El scanner no puede convertir un trozo a token (`lexer.py`) |
 | `ParseError` | Las fichas no encajan en ninguna forma de línea / no forman una expresión (`parser.py`) |
 | `SemanticError` | La forma es válida pero el significado no (F3: cabecera, etiquetas, catálogos) |
+| `ExecutionError` | La evaluación falla en un turno (F6: tipos, `/0`, `%0`, variable no asignada, acción ausente) |
 
 Los errores **no interrumpen el proceso**: el scanner y el parser los **recogen** en
 listas (`ScanResult.errors`, `ParseResult.errors`) para reportar varios de una vez, y
@@ -214,27 +215,48 @@ solo vale como comentario a línea completa (decisión **D11**: así `char #` de
 
 ---
 
-## 6. Pendientes (spec §2.8, PLAN §2) — aún NO implementados
+## 6. Intérprete — `instinct/lang/` + `world/perceptions.py` (9 mensajes)
+
+F6 **detecta** los errores de ejecución y los lanza como `ExecutionError(linea,
+mensaje)` con el mismo formato `línea N: mensaje`. La **política** de ictus
+(matar a la criatura y llevar el mensaje a los logs) llega en F7: por ahora el
+error interrumpe el turno y se propaga.
+
+| Mensaje | Nace en | Cuándo |
+|---|---|---|
+| `división por cero` | `values.apply_binary` | `1 / 0` (spec §2.8) |
+| `resto por cero` | `values.apply_binary` | `1 % 0` (decisión **D2**) |
+| `no se pueden mezclar entero y texto` | `values.apply_binary` | `1 + "a"`, `1 == "a"` (spec §2.5: mismo tipo) |
+| `el texto solo admite '==' y '!='` | `values.apply_binary` | `"a" < "b"`, `"a" + "b"` |
+| `el menos unario solo admite números` | `values.negate` | `-"a"` |
+| `variable no asignada 'nunca'` | `environment.Environment.get` | Leer una variable nunca asignada (el nombre va entre comillas) |
+| `la función 'see' espera números` | `functions._coords` | `see("a", 0)` (`'name'` en `name_at`) |
+| `la acción 'wait' espera un número` | `actions/wait.py` (`Wait.validate`) | `wait("ya")` |
+| `acción no implementada 'move'` | `interpreter._run_action` | Acción del catálogo aún sin clase (solo posible en F6; en F7 el registro se completa y queda como rama defensiva) |
+
+`world/perceptions.py`, `lang/perceptions.py` y `sim/engine.py` (rugidos, `perception_random`)
+no emiten mensajes: calculan valores.
+
+---
+
+## 7. Pendientes (spec §2.8, PLAN §2) — aún NO implementados
 
 Estos mensajes **todavía no existen en el código**. Se anotan aquí para que F7 y
 F8 los formulen en español desde el principio, no para dar por hecho que existen.
 
-F5 no añade ningún mensaje: el motor solo orquesta (ticks, sorteo, fin de tick) y
-no reporta errores de usuario.
-
 **F7 — ejecución** (dan ictus, la criatura muere, van a los logs con su línea):
-división por cero, resto por cero (decisión **D2**: también ictus), lectura de variable
-no asignada, `dx`/`dy` fuera de `{-1, 0, 1}`, mezclar entero y texto en un operador no
-lógico, texto donde se exige un número.
+`dx`/`dy` fuera de `{-1, 0, 1}` y resto de validaciones de las 6 acciones nuevas,
+más la política de ictus sobre los mensajes de la sección 6.
 
 **F8 — mapa** (`char` no declarado, spec §3.3): rechazo con char y línea, la app sigue.
 
 ---
 
-## 6. Tests
+## 8. Tests
 
 Los tests afirman pares `(line, message)` **exactos** (`tests/test_scanner.py`,
-`tests/test_parser.py`, `tests/test_resolver.py`, `tests/test_loaders.py`). Cambiar un mensaje es romper la suite a propósito: obliga a
+`tests/test_parser.py`, `tests/test_resolver.py`, `tests/test_loaders.py`,
+`tests/test_interpreter.py`). Cambiar un mensaje es romper la suite a propósito: obliga a
 revisar el texto en lugar de colarlo en silencio. Al traducir, se actualizan código y
 tests en el mismo commit. (`tests/test_engine.py` no afirma mensajes: el motor F5 no
 emite ninguno.)

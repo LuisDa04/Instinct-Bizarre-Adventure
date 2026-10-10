@@ -106,8 +106,8 @@ terrains/ objects/ maps/ creatures/   # dirs de carga que exige §4.1; contenido
 | **F3** ✅ | `semantic.py`: chequeos de §2.8 + catálogos de acciones/funciones/percepciones |
 | **F4** ✅ | Modelo de mundo + loaders `.te`/`.ob` |
 | **F5** ✅ | Motor de simulación: ticks, sorteo, fin de tick (§3.4), 8 leyes (§2.7), RNG |
-| **F6** | Intérprete (PC, 100 líneas, `wait`, variables) + percepciones §2.6 |
-| **F7** | Las 7 acciones + errores de ejecución |
+| **F6** ✅ | Intérprete (PC, 100 líneas, `wait`, variables) + percepciones §2.6 |
+| **F7** | Las 6 acciones restantes + política de ictus (matar + log) |
 | **F8** | Loader `.map` + rechazo por char + colocación |
 | **F9** | Pipeline de carga (§4.1.1) + CLI |
 | **F10** | Interfaz Pygame: rejilla, colocación, play/pausa/paso/3 velocidades, reinicio, logs, **semilla visible + repetir** |
@@ -124,7 +124,7 @@ todas ─▶ F11 (tests continuos)
 
 ### Estado
 
-F0–F5 implementadas con suite verde (160 tests, 2026-10-07). Siguiente: F6 (intérprete).
+F0–F6 implementadas con suite verde (184 tests, 2026-10-10). Siguiente: F7 (acciones).
 
 ---
 
@@ -172,5 +172,11 @@ F0–F5 implementadas con suite verde (160 tests, 2026-10-07). Siguiente: F6 (in
 | **D12** | Contador de `wait` | **`wait_remaining` vive en `Creature`** (junto a `pc`/`variables`); el motor solo lo decrementa y salta el turno | §2.7.4: dormir no protege de vida/edad/muerte; F6 escribirá el contador |
 | **D13** | Reportes del motor | **`TickReport`/`WorldSnapshot` congelados** (`frozen=True`, tuplas); `order` guarda coordenadas pre-turno; `state()` no expone `_cells` ni el RNG | §5: solo `step()/state()` hablan con UI/CLI; la traza no se puede mutar |
 | **D14** | Nacidas y hook de turno | **`births` se cuenta tras los turnos** (incluye encoladas mid-tick por el futuro `reproduce`); `_pending` se filtra por identidad; **`set_turn_runner()`** es el hueco donde F6 conectará el intérprete | §2.7.8 (cría actúa al tick siguiente); F5 no ejecuta ni evalúa nada |
+| **D15** | Cercanos sin contarse | **La criatura se excluye** de `allies/enemies/objects_near` y de los tres "más cercano" | Anexo `hobbit.ins`: con `ally_dist` 0 permanente nunca haría `goto go_ally`; `allies_near < 2` cuenta compañeros |
+| **D16** | Percepción `tick` | **`engine.tick` tal cual** (ticks ya cerrados; 0 durante el primer tick) | §2.6 no fija la numeración; no se toca el F5 testeado |
+| **D17** | Tope de 100 líneas | **Cada sentencia traída cuenta**, incluidas las etiquetas inertes | §2.7.5 «ejecuta como mucho 100 líneas»; así `goto start` no cuelga |
+| **D18** | Alcance de F6 | **Base `Action` + `Wait` + detección de errores** (`ExecutionError` con línea); la política de ictus (matar + log) y las otras 6 acciones son F7 | §2.8; F6 no mata ni registra, solo interrumpe el turno |
+| **D19** | Acceso del intérprete al RNG | **Método estrecho `Engine.perception_random()`**; `_rng` sigue privado | I8: `random` y sorteo salen del mismo generador sin exponerlo |
+| **D20** | Dónde vive el buffer de rugidos | **En `Engine`**: `emit_roar(x, y, texto)`, publicación al fin de tick con oyentes por visión, lectura `heard_roars()`; F6 lo lee, F7 lo llena con `Roar` | D5; solo el motor sabe cuándo termina el tick |
 
 **Pendientes menores (no bloqueantes):** textos/estética de la UI, cuántas extensiones JoJo se implementan (mínimo viable: ejemplos de `.ins`/`.te`/`.ob`/`.map` que usen solo la base).
