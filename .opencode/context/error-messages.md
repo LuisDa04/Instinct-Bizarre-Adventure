@@ -179,14 +179,15 @@ de **ejecución** (ictus, F7), aunque el argumento sea un literal.
 
 ---
 
-## 5. Loaders — `instinct/loaders/` (10 mensajes)
+## 5. Loaders — `instinct/loaders/` (15 mensajes)
 
 `LoadError(line, message, path="")` hereda de `CompileError` (decisión **D9**):
 el formato es el mismo (`línea N: mensaje`); `.path` lo rellena el escaneo de
-directorios para el log por archivo (spec §4.1.1). Los dos formatos comparten
-el parser de `definition.py`: cada línea con contenido es `clave valor`; `#`
-solo vale como comentario a línea completa (decisión **D11**: así `char #` del
-`rock.ob` del Anexo sigue funcionando).
+directorios para el log por archivo (spec §4.1.1) con `tag_errors` de
+`errors.py`. Los dos formatos de definición comparten el parser de
+`definition.py`: cada línea con contenido es `clave valor`; `#` solo vale como
+comentario a línea completa (decisión **D11**: así `char #` del `rock.ob` del
+Anexo sigue funcionando).
 
 ### Primera línea y forma (spec §3.2)
 
@@ -212,6 +213,22 @@ solo vale como comentario a línea completa (decisión **D11**: así `char #` de
 | Mensaje | Nace en | Cuándo |
 |---|---|---|
 | `el char '.' ya está declarado por 'Grass'` | `_claim` | Otro archivo declara el mismo char (vale entre `.te` y `.ob`); se reporta en la línea del `char` del segundo archivo |
+
+### Mapas (spec §3.3, `map_loader.py`)
+
+La primera línea con contenido es el nombre (admite espacios) y el resto son
+filas del mismo largo (decisiones **D24**–**D26**): sin comentarios (`#` es un
+char de mapa), líneas en blanco ignoradas, bordes de fila recortados y números
+de línea físicos. Cualquier error rechaza el archivo entero y se recogen todos
+de una vez, como el compilador.
+
+| Mensaje | Nace en | Cuándo |
+|---|---|---|
+| `la primera línea debe ser el nombre del mapa` | `load_map` | Archivo vacío o solo líneas en blanco (línea 1) |
+| `el mapa debe tener al menos una fila` | `load_map` | Solo nombre, sin filas (línea del nombre) |
+| `el mapa necesita al menos un terreno cargado` | `load_map` | Registro sin terrenos: toda casilla exige terreno (I1) |
+| `las filas deben medir 20 caracteres, no 18` | `load_map` | Fila disconforme con el ancho de la primera |
+| `char desconocido 'X'` | `load_map` | Ningún `.te`/`.ob` declara ese char (spec §3.3); uno por celda ofensiva |
 
 ---
 
@@ -247,10 +264,10 @@ entidades.
 
 ## 7. Pendientes (spec §2.8, PLAN §2) — aún NO implementados
 
-Estos mensajes **todavía no existen en el código**. Se anotan aquí para que la
-fase que corresponda los formule en español desde el principio.
-
-**F8 — mapa** (`char` no declarado, spec §3.3): rechazo con char y línea, la app sigue.
+**Nada pendiente**: F7 (ictus) y F8 (mapas) ya registraron los suyos en las
+secciones 6 y 5. F9 orquesta la carga con los mensajes que ya existen; si una
+fase futura añade mensajes nuevos, se anotan aquí primero y se implementan en
+español desde el principio.
 
 ---
 
@@ -258,7 +275,8 @@ fase que corresponda los formule en español desde el principio.
 
 Los tests afirman pares `(line, message)` **exactos** (`tests/test_scanner.py`,
 `tests/test_parser.py`, `tests/test_resolver.py`, `tests/test_loaders.py`,
-`tests/test_interpreter.py`, `tests/test_actions.py`) y, desde F7, también los
+`tests/test_map_loader.py`, `tests/test_interpreter.py`,
+`tests/test_actions.py`) y, desde F7, también los
 textos completos que llegan al registro (`Nombre: línea N: mensaje`,
 `Nombre dice: X`, `Nombre ruge: X`). Cambiar un mensaje es romper la suite a
 propósito: obliga a revisar el texto en lugar de colarlo en silencio. Al

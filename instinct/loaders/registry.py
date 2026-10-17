@@ -4,7 +4,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from ..world.entities import Terrain, WorldObject
-from .errors import LoadError
+from .errors import LoadError, tag_errors
 from .object_loader import load_object
 from .terrain_loader import load_terrain
 
@@ -108,25 +108,17 @@ def load_definitions(
     errors: list[LoadError] = []
     for path in sorted(terrains_dir.glob("*.te")):
         result = load_terrain(path.read_text(encoding="utf-8"))
-        errors.extend(_tagged(result.errors, path))
+        errors.extend(tag_errors(result.errors, path))
         if result.terrain is not None:
             conflict = registry.add_terrain(result.terrain, result.char_line)
             if conflict is not None:
-                errors.append(_tagged([conflict], path)[0])
+                errors.append(tag_errors([conflict], path)[0])
     for path in sorted(objects_dir.glob("*.ob")):
         result = load_object(path.read_text(encoding="utf-8"))
-        errors.extend(_tagged(result.errors, path))
+        errors.extend(tag_errors(result.errors, path))
         if result.object is not None:
             conflict = registry.add_object(result.object, result.char_line)
             if conflict is not None:
-                errors.append(_tagged([conflict], path)[0])
+                errors.append(tag_errors([conflict], path)[0])
     return registry, errors
 
-
-def _tagged(errors: list[LoadError], path: Path) -> list[LoadError]:
-    """Etiqueta cada error con la ruta del fichero que lo produjo.
-
-    Returns:
-        Nueva lista de errores con path informado; la lista original no se modifica.
-    """
-    return [LoadError(error.line, error.message, str(path)) for error in errors]

@@ -1,6 +1,8 @@
 """Error de carga de definiciones con línea y ruta del fichero."""
 from __future__ import annotations
 
+from pathlib import Path
+
 from ..compiler.errors import CompileError
 
 
@@ -17,3 +19,16 @@ class LoadError(CompileError):
         """
         super().__init__(line, message)
         self.path = path
+
+
+def tag_errors(errors: list[LoadError], path: Path) -> list[LoadError]:
+    """Etiqueta cada error con la ruta del fichero que lo produjo.
+
+    Args:
+        errors: Errores sin etiquetar; la lista no se modifica.
+        path: Ruta del fichero que generó los errores.
+
+    Returns:
+        Nueva lista de errores con path informado; la lista original queda intacta.
+    """
+    return [LoadError(error.line, error.message, str(path)) for error in errors]
