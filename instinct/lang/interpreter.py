@@ -64,19 +64,27 @@ class Interpreter:
     def run_turn(self, creature: Creature) -> None:
         """Ejecuta un turno: refresca percepciones y avanza hasta una acción.
 
+        Un error de ejecución es un ictus: la criatura muere en el acto y el
+        mensaje con su línea va al registro (§2.8, D21, D23).
+
         Args:
             creature: Criatura viva y despierta que recibe el turno.
         """
-        frame = refresh(creature, self._world, self._engine)
-        env = Environment(creature.variables, frame)
-        body = creature.program.body
-        for _ in range(MAX_LINES):
-            if creature.pc >= len(body):
-                creature.pc = creature.program.labels["start"]
-                return
-            action = self._run_stmt(body[creature.pc], creature, env, frame)
-            if action is not None and action.consumes_turn:
-                return
+        try:
+            frame = refresh(creature, self._world, self._engine)
+            env = Environment(creature.variables, frame)
+            body = creature.program.body
+            for _ in range(MAX_LINES):
+                if creature.pc >= len(body):
+                    creature.pc = creature.program.labels["start"]
+                    return
+                action = self._run_stmt(body[creature.pc], creature, env, frame)
+                if action is not None and action.consumes_turn:
+                    return
+        except ExecutionError as error:
+            self._engine.kill(creature)
+            if self._log is not None:
+                self._log(f"{creature.name}: {error}")
 
     def _run_stmt(
         self, stmt: Stmt, creature: Creature, env: Environment, frame: TurnFrame
@@ -125,7 +133,9 @@ class Interpreter:
             La acción aplicada para que `run_turn` decida si el turno sigue.
 
         Raises:
-            ExecutionError: Si la acción aún no existe (solo posible en F6).
+            ExecutionError: Si la acción no está registrada (rama defensiva:
+                el registro y el catálogo se comprueban en sincronía al
+                importar, así que un programa resuelto no puede llegar aquí).
         """
         args = [self._eval(arg, creature, env, frame) for arg in stmt.args]
         creature.pc += 1

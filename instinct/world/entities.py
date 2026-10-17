@@ -5,22 +5,30 @@ from ..compiler.semantic import ResolvedProgram
 
 
 class Entity:
-    """Representa una entidad con reserva agotable que nunca baja de 0 por golpe."""
+    """Representa una entidad con reserva agotable que se mantiene entre 0 y su tope."""
 
     name: str
     walkable: bool
     reserve: int
 
+    @property
+    def max_reserve(self) -> int | None:
+        """Devuelve el tope superior de la reserva; None = sin tope (I5)."""
+        return None
+
     def hit(self, damage: int) -> bool:
-        """Resta daño a la reserva sin bajar de 0 e indica si quedó agotada.
+        """Resta daño a la reserva sin salirse de [0, tope] e indica si quedó agotada.
 
         Args:
-            damage: Cantidad a restar; se esperan valores >= 0.
+            damage: Cantidad a restar; negativo repone hasta el tope (D22).
 
         Returns:
             True si la reserva quedó en 0, False en caso contrario.
         """
         self.reserve = max(0, self.reserve - damage)
+        cap = self.max_reserve
+        if cap is not None:
+            self.reserve = min(cap, self.reserve)
         return self.reserve == 0
 
 
@@ -46,6 +54,11 @@ class Terrain(Entity):
         self.resource_max = resource_max
         self.regen = regen
         self.reserve = resource_max
+
+    @property
+    def max_reserve(self) -> int:
+        """Devuelve el tope de la reserva: resource_max (I3)."""
+        return self.resource_max
 
     def regenerate(self) -> None:
         """Suma regen a la reserva sin superar resource_max."""
@@ -80,6 +93,11 @@ class WorldObject(Entity):
         self.char = char
         self.resource_max = resource_max
         self.reserve = resource_max
+
+    @property
+    def max_reserve(self) -> int:
+        """Devuelve el tope de la reserva: resource_max (I3)."""
+        return self.resource_max
 
     def clone(self) -> WorldObject:
         """Crea una copia independiente del objeto con la reserva llena.

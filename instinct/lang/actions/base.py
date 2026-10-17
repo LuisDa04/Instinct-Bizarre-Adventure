@@ -10,6 +10,8 @@ from typing import TYPE_CHECKING
 from instinct.world.entities import Creature
 from instinct.world.world import World
 
+from ..errors import ExecutionError
+
 if TYPE_CHECKING:
     from instinct.sim.engine import Engine
 
@@ -41,6 +43,31 @@ class Action(ABC):
     name: str
     arity: int
     consumes_turn: bool = True
+
+    def _require_number(self, args: list[int | str], index: int, line: int) -> None:
+        """Comprueba que el argumento sea un entero o lanza ictus (§2.8).
+
+        Args:
+            args: Argumentos ya evaluados de la acción.
+            index: Posición del argumento que debe ser un número.
+            line: Línea (1-based) de la llamada para el mensaje de error.
+        """
+        if not isinstance(args[index], int):
+            raise ExecutionError(line, f"la acción {self.name!r} espera un número")
+
+    def _require_direction(self, args: list[int | str], index: int, line: int) -> None:
+        """Comprueba que dx/dy sea un entero en {-1, 0, 1} o lanza ictus (§2.8).
+
+        Args:
+            args: Argumentos ya evaluados de la acción.
+            index: Posición del argumento de dirección a comprobar.
+            line: Línea (1-based) de la llamada para el mensaje de error.
+        """
+        self._require_number(args, index, line)
+        if args[index] not in (-1, 0, 1):
+            raise ExecutionError(
+                line, f"la acción {self.name!r} espera dx y dy en {{-1, 0, 1}}"
+            )
 
     @abstractmethod
     def validate(self, args: list[int | str], line: int) -> None:

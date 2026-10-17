@@ -157,6 +157,28 @@ class World:
         cell.creature = None
         return creature
 
+    def move_creature(self, creature: Creature, x: int, y: int) -> bool:
+        """Traslada la criatura colocada a (x, y) si es pisable.
+
+        La casilla de origen queda libre y la posición de la criatura se
+        sincroniza con el destino.
+
+        Args:
+            creature: Criatura ya colocada y con (x, y) sincronizados.
+            x: Columna destino.
+            y: Fila destino.
+
+        Returns:
+            False si (x, y) está fuera del mapa u ocupada.
+        """
+        if not self.walkable(x, y):
+            return False
+        assert self.remove_creature(creature.x, creature.y) is creature
+        self._cells[y][x].creature = creature
+        creature.x = x
+        creature.y = y
+        return True
+
     def creatures(self) -> Iterator[Creature]:
         """Recorre en orden de filas todas las criaturas colocadas.
 

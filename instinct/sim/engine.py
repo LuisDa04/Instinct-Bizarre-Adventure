@@ -13,7 +13,8 @@ from instinct.world.world import World
 class TickReport:
     """Representa el resumen de un tick: número, muertes, nacimientos y orden de turno.
 
-    Invariante: order trae posiciones al inicio en orden de actuación, sin recién nacidos.
+    Invariante: order trae posiciones al inicio en orden de actuación, sin
+    recién nacidos; deaths suma ictus, combate y fin de tick (D21).
     """
 
     tick: int
@@ -50,7 +51,8 @@ class WorldSnapshot:
 class Engine:
     """Representa el motor que avanza el mundo tick a tick con semilla fija.
 
-    Invariante: cada tick corre turnos, cobra vida y edad, retira muertes, regenera y suma nacidos.
+    Invariante: cada tick corre turnos, cobra vida y edad, retira muertes (las
+    de fin de tick y las que llegan por kill() a mitad de tick), regenera y suma nacidos.
     """
 
     def __init__(self, world: World, seed: int = 0) -> None:
@@ -67,6 +69,7 @@ class Engine:
         self._turn_runner: Callable[[Creature], bool] | None = None
         self._emitted: list[tuple[int, int, str]] = []
         self._heard: list[Roar] = []
+        self._deaths = 0
 
     @property
     def tick(self) -> int:
@@ -121,6 +124,36 @@ class Engine:
         """
         self._pending.append(creature)
 
+    def kill(self, creature: Creature) -> bool:
+        """Retira a la criatura del mundo y cuenta su muerte en el tick actual (D21).
+
+        Args:
+            creature: Criatura viva; se localiza por identidad aunque su
+                posición registrada esté desfasada.
+
+        Returns:
+            True si estaba en el mundo y se retiró; False si ya no estaba.
+        """
+        if not self._bury(creature):
+            return False
+        self._deaths += 1
+        return True
+
+    def _bury(self, creature: Creature) -> bool:
+        """Localiza y retira a la criatura por identidad.
+
+        Returns:
+            True si se encontró y retiró; False si ya no está en el mundo.
+        """
+        if self._world.creature_at(creature.x, creature.y) is creature:
+            self._world.remove_creature(creature.x, creature.y)
+            return True
+        found = self._find_creature(creature)
+        if found is None:
+            return False
+        self._world.remove_creature(found[0], found[1])
+        return True
+
     def state(self) -> WorldSnapshot:
         """Devuelve una foto inmutable del mundo que no expone sus estructuras internas.
 
@@ -154,6 +187,7 @@ class Engine:
         Returns:
             TickReport con el nuevo tick, muertes, nacimientos y orden de actuación.
         """
+        self._deaths = 0
         pending_ids = {id(creature) for creature in self._pending}
         snapshot = [
             creature
@@ -174,17 +208,9 @@ class Engine:
         for creature in after_turns:
             creature.health -= 1
             creature.age = max(0, creature.age + 1)
-        deaths = 0
         for creature in after_turns:
             if creature.health <= 0 or creature.age >= creature.lifespan:
-                if self._world.creature_at(creature.x, creature.y) is creature:
-                    self._world.remove_creature(creature.x, creature.y)
-                    deaths += 1
-                else:
-                    missing = self._find_creature(creature)
-                    if missing is not None:
-                        self._world.remove_creature(missing[0], missing[1])
-                        deaths += 1
+                self.kill(creature)
         self._publish_roars()
         for y in range(self._world.height):
             for x in range(self._world.width):
@@ -200,7 +226,7 @@ class Engine:
         self._pending.clear()
         self._tick += 1
         return TickReport(
-            tick=self._tick, deaths=deaths, births=births, order=order
+            tick=self._tick, deaths=self._deaths, births=births, order=order
         )
 
     def _publish_roars(self) -> None:

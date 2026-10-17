@@ -227,3 +227,45 @@ def test_creature_starts_with_age_zero_and_header() -> None:
 def test_prototypes_start_full() -> None:
     assert grass().reserve == 100
     assert rock().reserve == 100
+
+
+def test_hit_caps_replenish_at_resource_max() -> None:
+    terrain = grass()
+    terrain.hit(30)
+    terrain.hit(-50)
+    assert terrain.reserve == 100
+    obj = rock()
+    obj.hit(20)
+    obj.hit(-1000)
+    assert obj.reserve == 100
+
+
+def test_hit_negative_damage_heals_creature_without_cap() -> None:
+    creature = hobbit(health=60)
+    creature.hit(-40)
+    assert creature.health == 100
+
+
+def test_move_creature_relocates_and_syncs() -> None:
+    world = World(3, 1, grass())
+    creature = hobbit()
+    assert world.place_creature(0, 0, creature)
+    assert world.move_creature(creature, 2, 0)
+    assert world.creature_at(0, 0) is None
+    assert world.creature_at(2, 0) is creature
+    assert (creature.x, creature.y) == (2, 0)
+
+
+def test_move_creature_refuses_blocked_targets() -> None:
+    world = World(3, 1, grass())
+    creature = hobbit()
+    assert world.place_creature(0, 0, creature)
+    assert world.place_object(2, 0, rock())
+    other = hobbit("Other")
+    assert world.place_creature(1, 0, other)
+    assert not world.move_creature(creature, 2, 0)
+    assert not world.move_creature(creature, 1, 0)
+    assert not world.move_creature(creature, 9, 9)
+    assert not world.move_creature(creature, 0, 0)
+    assert world.creature_at(0, 0) is creature
+    assert (creature.x, creature.y) == (0, 0)

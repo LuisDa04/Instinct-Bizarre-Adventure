@@ -228,6 +228,52 @@ def test_wait_remaining_starts_at_zero() -> None:
     assert creature.wait_remaining == 0
 
 
+def test_kill_removes_creature_from_world() -> None:
+    world = World(2, 1, grass())
+    creature = Creature(make_program("A", 60, 300))
+    assert world.place_creature(0, 0, creature)
+    engine = Engine(world, seed=0)
+    assert engine.kill(creature)
+    assert world.creature_at(0, 0) is None
+    assert not engine.kill(creature)
+
+
+def test_kill_locates_by_identity_when_position_is_stale() -> None:
+    world = World(3, 1, grass())
+    creature = Creature(make_program("A", 60, 300))
+    assert world.place_creature(1, 0, creature)
+    engine = Engine(world, seed=0)
+    creature.x = 9
+    assert engine.kill(creature)
+    assert world.creature_at(1, 0) is None
+
+
+def test_mid_tick_kill_counts_in_report_and_skips_turn() -> None:
+    world = World(2, 1, grass())
+    first = Creature(make_program("A", 60, 300))
+    second = Creature(make_program("B", 60, 300))
+    assert world.place_creature(0, 0, first)
+    assert world.place_creature(1, 0, second)
+    engine = Engine(world, seed=0)
+    acted: list[Creature] = []
+    killed: list[Creature] = []
+
+    def runner(creature: Creature) -> bool:
+        acted.append(creature)
+        if not killed:
+            victim = second if creature is first else first
+            assert engine.kill(victim)
+            killed.append(victim)
+        return True
+
+    engine.set_turn_runner(runner)
+    report = engine.step()
+    survivor = first if killed[0] is second else second
+    assert acted == [survivor]
+    assert survivor.health == 59
+    assert report.deaths == 1
+
+
 def test_newborn_queued_mid_tick_counts_and_waits() -> None:
     world = World(3, 1, grass())
     mother = Creature(make_program("Mother", 60, 300))

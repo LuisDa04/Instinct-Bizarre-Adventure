@@ -3,7 +3,6 @@ from __future__ import annotations
 from instinct.compiler.lexer import scan
 from instinct.compiler.parser import parse
 from instinct.compiler.semantic import ResolvedProgram, resolve
-from instinct.lang.errors import ExecutionError
 from instinct.lang.interpreter import MAX_LINES, Interpreter
 from instinct.sim.engine import Engine
 from instinct.world.entities import Creature, Terrain
@@ -33,8 +32,12 @@ def make_world(program: ResolvedProgram, x: int = 2, y: int = 2) -> tuple[World,
     return world, creature
 
 
-def turn(world: World, creature: Creature, seed: int = 1) -> Interpreter:
-    interp = Interpreter(world, Engine(world, seed=seed))
+def turn(
+    world: World, creature: Creature, seed: int = 1, log: list[str] | None = None
+) -> Interpreter:
+    interp = Interpreter(
+        world, Engine(world, seed=seed), log=log.append if log is not None else None
+    )
     interp.run_turn(creature)
     return interp
 
@@ -347,7 +350,7 @@ def test_same_seed_same_trace() -> None:
     assert run(11) != run(12)
 
 
-def test_runtime_errors_carry_line() -> None:
+def test_runtime_errors_kill_and_log_with_line() -> None:
     cases = [
         ("    n = 1 / 0\n    wait(1)\n", 7, "división por cero"),
         ("    n = 1 % 0\n    wait(1)\n", 7, "resto por cero"),
@@ -360,14 +363,20 @@ def test_runtime_errors_carry_line() -> None:
         ("    wait(\"ya\")\n", 7, "la acción 'wait' espera un número"),
         ("    n = see(\"a\", 0)\n    wait(1)\n", 7, "la función 'see' espera números"),
         ("    n = name(0, \"a\")\n    wait(1)\n", 7, "la función 'name' espera números"),
-        ("    move(1, 0, 1)\n", 7, "acción no implementada 'move'"),
     ]
     for body, line, message in cases:
         world, creature = make_world(compile_body(body))
-        try:
-            turn(world, creature)
-        except ExecutionError as error:
-            assert (error.line, error.message) == (line, message), (body, str(error))
-        else:
-            raise AssertionError(f"sin ictus: {body!r}")
+        log: list[str] = []
+        turn(world, creature, log=log)
+        assert world.creature_at(2, 2) is None, body
+        assert log == [f"Uruk: línea {line}: {message}"], body
         assert "n" not in creature.variables, body
+
+
+def test_ictus_during_step_counts_death() -> None:
+    world, creature = make_world(compile_body("    n = 1 / 0\n    wait(1)\n"))
+    engine = Engine(world, seed=1)
+    engine.set_turn_runner(Interpreter(world, engine).run_turn)
+    report = engine.step()
+    assert world.creature_at(2, 2) is None
+    assert report.deaths == 1
