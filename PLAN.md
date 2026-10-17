@@ -107,7 +107,7 @@ terrains/ objects/ maps/ creatures/   # dirs de carga que exige §4.1; contenido
 | **F4** ✅ | Modelo de mundo + loaders `.te`/`.ob` |
 | **F5** ✅ | Motor de simulación: ticks, sorteo, fin de tick (§3.4), 8 leyes (§2.7), RNG |
 | **F6** ✅ | Intérprete (PC, 100 líneas, `wait`, variables) + percepciones §2.6 |
-| **F7** | Las 6 acciones restantes + política de ictus (matar + log) |
+| **F7** ✅ | Las 6 acciones restantes + política de ictus (matar + log) |
 | **F8** | Loader `.map` + rechazo por char + colocación |
 | **F9** | Pipeline de carga (§4.1.1) + CLI |
 | **F10** | Interfaz Pygame: rejilla, colocación, play/pausa/paso/3 velocidades, reinicio, logs, **semilla visible + repetir** |
@@ -124,7 +124,7 @@ todas ─▶ F11 (tests continuos)
 
 ### Estado
 
-F0–F6 implementadas con suite verde (184 tests, 2026-10-10). Siguiente: F7 (acciones).
+F0–F7 implementadas con suite verde (219 tests, 2026-10-17). Siguiente: F8 (loader `.map` + colocación).
 
 ---
 
@@ -178,5 +178,8 @@ F0–F6 implementadas con suite verde (184 tests, 2026-10-10). Siguiente: F7 (ac
 | **D18** | Alcance de F6 | **Base `Action` + `Wait` + detección de errores** (`ExecutionError` con línea); la política de ictus (matar + log) y las otras 6 acciones son F7 | §2.8; F6 no mata ni registra, solo interrumpe el turno |
 | **D19** | Acceso del intérprete al RNG | **Método estrecho `Engine.perception_random()`**; `_rng` sigue privado | I8: `random` y sorteo salen del mismo generador sin exponerlo |
 | **D20** | Dónde vive el buffer de rugidos | **En `Engine`**: `emit_roar(x, y, texto)`, publicación al fin de tick con oyentes por visión, lectura `heard_roars()`; F6 lo lee, F7 lo llena con `Roar` | D5; solo el motor sabe cuándo termina el tick |
+| **D21** | Muertes a mitad de tick | **`Engine.kill()` unificado**: acciones e intérprete matan a través del motor (retira por identidad y cuenta); `TickReport.deaths` suma ictus, combate y fin de tick | §3.4 «se queda tiesa ahí mismo»; el bucle de turnos de F5 ya saltaba a las muertas mid-tick |
+| **D22** | Cantidades negativas | **Literales + topes**: se aplican tal cual (un damage negativo repone); `hit` no deja la reserva de terreno/objeto pasar de `resource_max` (I3); la vida de criaturas no tiene techo (I5); `reproduce` exige `health >= 1` para nacer, si no hay aborto natural | §2.4 «el lenguaje no impone límites… la simulación se encarga de premiar o castigar»; I3/I4 |
+| **D23** | Formato del registro | **`say` → `Nombre dice: X` · `roar` → `Nombre ruge: X` · ictus → `Nombre: línea N: mensaje`** | §2.4 say/roar; §2.8 «aparece en los logs»; §4.1 registro de la aplicación |
 
 **Pendientes menores (no bloqueantes):** textos/estética de la UI, cuántas extensiones JoJo se implementan (mínimo viable: ejemplos de `.ins`/`.te`/`.ob`/`.map` que usen solo la base).

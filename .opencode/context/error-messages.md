@@ -25,7 +25,7 @@ línea {line}: {message}
 | `LexError` | El scanner no puede convertir un trozo a token (`lexer.py`) |
 | `ParseError` | Las fichas no encajan en ninguna forma de línea / no forman una expresión (`parser.py`) |
 | `SemanticError` | La forma es válida pero el significado no (F3: cabecera, etiquetas, catálogos) |
-| `ExecutionError` | La evaluación falla en un turno (F6: tipos, `/0`, `%0`, variable no asignada, acción ausente) |
+| `ExecutionError` | La evaluación falla en un turno (F7: tipos, `/0`, `%0`, variable no asignada, validaciones de acciones) |
 
 Los errores **no interrumpen el proceso**: el scanner y el parser los **recogen** en
 listas (`ScanResult.errors`, `ParseResult.errors`) para reportar varios de una vez, y
@@ -215,12 +215,13 @@ solo vale como comentario a línea completa (decisión **D11**: así `char #` de
 
 ---
 
-## 6. Intérprete — `instinct/lang/` + `world/perceptions.py` (9 mensajes)
+## 6. Intérprete y acciones — `instinct/lang/` + `world/perceptions.py` (11 mensajes)
 
 F6 **detecta** los errores de ejecución y los lanza como `ExecutionError(linea,
-mensaje)` con el mismo formato `línea N: mensaje`. La **política** de ictus
-(matar a la criatura y llevar el mensaje a los logs) llega en F7: por ahora el
-error interrumpe el turno y se propaga.
+mensaje)` con el mismo formato `línea N: mensaje`. Desde F7 la **política de
+ictus** está completa: el intérprete atrapa el error, mata a la criatura en el
+acto (`Engine.kill`, decisión **D21**) y lleva al registro
+`Nombre: línea N: mensaje` (decisión **D23**).
 
 | Mensaje | Nace en | Cuándo |
 |---|---|---|
@@ -232,21 +233,22 @@ error interrumpe el turno y se propaga.
 | `variable no asignada 'nunca'` | `environment.Environment.get` | Leer una variable nunca asignada (el nombre va entre comillas) |
 | `la función 'see' espera números` | `functions._coords` | `see("a", 0)` (`'name'` en `name_at`) |
 | `la acción 'wait' espera un número` | `actions/wait.py` (`Wait.validate`) | `wait("ya")` |
-| `acción no implementada 'move'` | `interpreter._run_action` | Acción del catálogo aún sin clase (solo posible en F6; en F7 el registro se completa y queda como rama defensiva) |
+| `la acción 'move' espera un número` | `actions/base.py` (`Action._require_number`) | Argumento no entero donde va número; el nombre cambia con la acción (`move`/`attack`/`consume`/`reproduce`) |
+| `la acción 'move' espera dx y dy en {-1, 0, 1}` | `actions/base.py` (`Action._require_direction`) | Dirección fuera de rango; vale para las cuatro acciones con `dx, dy` (spec §2.8) |
+| `acción no implementada 'move'` | `interpreter._run_action` | Rama defensiva: el registro y el catálogo se comprueban en sincronía al importar, así que un programa resuelto no puede llegar aquí |
 
-`world/perceptions.py`, `lang/perceptions.py` y `sim/engine.py` (rugidos, `perception_random`)
-no emiten mensajes: calculan valores.
+`roar` y `say` no validan nada (§2.5: aceptan cualquier valor); sus textos van
+al registro como `Nombre ruge: X` y `Nombre dice: X` (decisión **D23**).
+`world/perceptions.py`, `lang/perceptions.py` y `sim/engine.py` (rugidos,
+`perception_random`, `kill`) no emiten mensajes: calculan valores o retiran
+entidades.
 
 ---
 
 ## 7. Pendientes (spec §2.8, PLAN §2) — aún NO implementados
 
-Estos mensajes **todavía no existen en el código**. Se anotan aquí para que F7 y
-F8 los formulen en español desde el principio, no para dar por hecho que existen.
-
-**F7 — ejecución** (dan ictus, la criatura muere, van a los logs con su línea):
-`dx`/`dy` fuera de `{-1, 0, 1}` y resto de validaciones de las 6 acciones nuevas,
-más la política de ictus sobre los mensajes de la sección 6.
+Estos mensajes **todavía no existen en el código**. Se anotan aquí para que la
+fase que corresponda los formule en español desde el principio.
 
 **F8 — mapa** (`char` no declarado, spec §3.3): rechazo con char y línea, la app sigue.
 
@@ -256,7 +258,9 @@ más la política de ictus sobre los mensajes de la sección 6.
 
 Los tests afirman pares `(line, message)` **exactos** (`tests/test_scanner.py`,
 `tests/test_parser.py`, `tests/test_resolver.py`, `tests/test_loaders.py`,
-`tests/test_interpreter.py`). Cambiar un mensaje es romper la suite a propósito: obliga a
-revisar el texto en lugar de colarlo en silencio. Al traducir, se actualizan código y
-tests en el mismo commit. (`tests/test_engine.py` no afirma mensajes: el motor F5 no
-emite ninguno.)
+`tests/test_interpreter.py`, `tests/test_actions.py`) y, desde F7, también los
+textos completos que llegan al registro (`Nombre: línea N: mensaje`,
+`Nombre dice: X`, `Nombre ruge: X`). Cambiar un mensaje es romper la suite a
+propósito: obliga a revisar el texto en lugar de colarlo en silencio. Al
+traducir, se actualizan código y tests en el mismo commit. (`tests/test_engine.py`
+no afirma mensajes: el motor no emite ninguno.)

@@ -1,7 +1,7 @@
-<!-- Context: main@16aa9fd -->
+<!-- Context: main@ed662f2 -->
 # Repository Context
 
-Last updated: 2026-10-10
+Last updated: 2026-10-17
 
 ## Tech Stack
 
@@ -20,7 +20,7 @@ Theme: **Instinct Bizarre Adventure** (JoJo's Bizarre Adventure). Written for an
 OOP course; the graded criteria are OO design quality (spec §5), not just "it runs".
 
 Mandatory base = spec sections 2–4. All plan decisions are recorded in **`PLAN.md`**
-(requirements R1–R19, invariants I1–I15, phases F0–F11, decisions D1–D8).
+(requirements R1–R19, invariants I1–I15, phases F0–F11, decisions D1–D23).
 
 ## Directory Structure
 
@@ -35,16 +35,18 @@ instinct/               Python package (phases F1+)
     semantic.py         resolve(program) -> ResolveResult; §2.8 checks + labels to indices
     catalogs.py         single source of truth: ACTION_ARITY, FUNCTION_ARITY,
                         PERCEPTIONS (31), CONSTANTS, HEADER_KEYS (read by F3 and F6/F7)
-    (lang/ runtime done in F6: values, environment, actions/, functions, perceptions,
-     interpreter; world/perceptions.py sensors; ui/ as planned; world/, loaders/ and sim/engine done in F4–F5)
-  lang/                 language runtime: actions/, functions, perceptions, interpreter (F6-F7)
+    (lang/ runtime done in F6+F7: values, environment, actions/ base + 7 action
+     subclasses + strike.py, functions, perceptions, interpreter; world/perceptions.py
+     sensors; ui/ as planned; world/, loaders/ and sim/engine done in F4–F5)
+  lang/                 language runtime: actions/ (base + 7 subclases + strike.py),
+                        functions, perceptions, interpreter (F6–F7 done)
   world/                entities.py (Entity/Terrain/WorldObject/Creature),
-                        world.py (Cell grid, placement, walkable), rng.py (seeded Rng)
+                        world.py (Cell grid, placement, movement, walkable), rng.py (seeded Rng)
   loaders/              errors.py (LoadError), definition.py (shared parser),
                         terrain_loader.py, object_loader.py, registry.py (F4; .map/.ins in F8/F9)
-  sim/                  engine.py tick loop (F5 done: Engine + TickReport + WorldSnapshot) + cli.py terminal runner (F9)
+  sim/                  engine.py tick loop (F5; F7 adds kill() for mid-tick deaths) + cli.py terminal runner (F9)
   ui/                   Pygame app (F10)
-tests/                  pytest suite (184 tests: 4 scaffold + 24 lexer + 36 parser + 35 semantic + 24 world + 24 loaders + 13 engine + 24 interpreter)
+tests/                  pytest suite (219 tests: 4 scaffold + 24 lexer + 36 parser + 35 semantic + 28 world + 24 loaders + 16 engine + 25 interpreter + 27 actions)
 terrains/ objects/ maps/ creatures/   runtime content dirs the app loads (spec §4.1), .gitkeep placeholders
 PLAN.md                 the project plan (source of truth for decisions)
 instinct.md             the specification (do not edit)
@@ -78,11 +80,22 @@ Two-stage front end → tree-walking interpreter (spec §5 forbids a bytecode VM
 4. `sim/engine.py` (F5 done) owns the single `Rng`, shuffles a snapshot copy of the
    turn order per tick, honors `wait_remaining` and the `_pending` newborn queue
    (spec §2.7 laws 1+8), applies end-of-tick E1→E2→E3→E4 (§3.4) and returns a
-   frozen `TickReport`. Turn contents run through the `set_turn_runner()` hook
-   (no-op until F6 plugs the interpreter); perception refresh, the 100-line cap
-   and the 7 actions are deliberately absent. Only the engine talks to the
-   interpreter; UI and CLI are clients of `step()/state()` (`state()` returns a
-   frozen `WorldSnapshot` with no live references, no `_cells`, no RNG).
+   frozen `TickReport`. Turn contents run through the `set_turn_runner()` hook,
+   where F6 plugged the interpreter; F7 added `kill()` so mid-tick deaths
+   (combat kills and strokes) are removed in place and counted in
+   `TickReport.deaths` (D21). Only the engine talks to the interpreter; UI and
+   CLI are clients of `step()/state()` (`state()` returns a frozen
+   `WorldSnapshot` with no live references, no `_cells`, no RNG).
+5. `lang/actions/` (F7 done): one subclass per action over the shared `Action`
+   base (contract: `validate` args → `apply` effect, §5); `strike.py` resolves
+   the target cell for attack/consume (creature > object > terrain; `(0, 0)`
+   hits the creature's own terrain, out-of-map is a no-op). The interpreter
+   catches every `ExecutionError` as a stroke: the creature dies in place via
+   `Engine.kill()` and `Nombre: línea N: mensaje` goes to the log callback
+   (D23). Amounts act literally, but `Entity.hit` clamps terrain/object
+   reserves to `resource_max` (I3, D22) while creature health stays uncapped
+   (I5); `reproduce` requires `health >= 1` or it is a natural abort (D22).
+   `say` is the only action with `consumes_turn = False`.
 
 ## Conventions & Patterns
 
@@ -115,14 +128,25 @@ Two-stage front end → tree-walking interpreter (spec §5 forbids a bytecode VM
     label→index resolution, header order/duplicate/unknown-key rules, calls checked
     inside conditions and action args, case-sensitivity, boundary values, and the
     full §2.1 uruk example resolving end to end),
-  `test_world.py` (24 tests: I1/I2/I3 per placement call, walkable rules, hit
-    clamping at 0, regen capped at max, prototype cloning, creature header/age),
+  `test_world.py` (28 tests: I1/I2/I3 per placement call, walkable rules, hit
+    clamping at 0 and capped at resource_max on negative damage, regen capped at
+    max, prototype cloning, creature header/age, `move_creature`),
   `test_loaders.py` (24 tests: Anexo grass/rock end to end, one per loader error
     with exact line+message, `char #` not eaten as comment, I14 char clash,
     partial-failure directory scan via `tmp_path`),
-  `test_engine.py` (13 tests: E1–E4 order, L1 shuffle determinism incl. order,
+  `test_engine.py` (16 tests: E1–E4 order, L1 shuffle determinism incl. order,
     L8 newborn waits a tick incl. mid-tick queueing, sleeping still ages,
-    `state()` read-only and frozen; adds no user-facing messages).
+    `state()` read-only and frozen, `kill()` removal/counting incl. stale
+    position by identity; adds no user-facing messages),
+  `test_interpreter.py` (25 tests: turn laws 3–7 incl. the 100-line cap and EOF
+    wrap, §2.5 precedence and type rules, the 31 perceptions, roar buffer,
+    same-seed determinism, and the F7 stroke policy: every §2.8 runtime error
+    kills the creature and logs `Nombre: línea N: mensaje`),
+  `test_actions.py` (27 tests: the 7 actions end to end through the interpreter —
+    move stopping rules, attack/consume targeting incl. `(0, 0)` own terrain and
+    out-of-map no-ops, mid-tick kills counted, reproduce births/aborts, roar
+    heard next tick, free say, validation strokes, and the four Anexo creatures
+    running 50 ticks in one world).
 - Tests assert **exact** `(line, message)` pairs, so every message change breaks the
   suite on purpose — that is the point: it makes message wording a reviewed decision.
 - Tests use inline `.ins` sources — the repo intentionally ships **no** example content
@@ -162,11 +186,21 @@ Two-stage front end → tree-walking interpreter (spec §5 forbids a bytecode VM
   wiring (`perception_random()` per D19, roar buffer published end-of-tick per
   D5/D20, `Creature.pc` starts at `labels["start"]`) + `tests/test_interpreter.py`;
   184 tests green. Decisions D15–D20 in `PLAN.md`.
-- **Next**: F7 (remaining 6 action subclasses + ictus kill+log policy; map loader
-  is F8). New messages must be added to `error-messages.md` in the same commit.
+- **F7 done**: `lang/actions/` completed — `Move`/`Attack`/`Consume`/`Reproduce`/
+  `Roar`/`Say` over the shared base (validators `_require_number`/
+  `_require_direction`), `strike.py` target resolution, registry asserting
+  sync with `ACTION_ARITY` — + stroke policy in `Interpreter.run_turn` (catch →
+  `Engine.kill()` → log `Nombre: línea N: mensaje`) + `Engine.kill()` counting
+  every death of the tick in `TickReport.deaths` (D21) + `World.move_creature`
+  + `Entity.hit` upper clamp at `resource_max` (D22) + `tests/test_actions.py`
+  incl. the four Anexo creatures running 50 ticks together; 219 tests green.
+  Decisions D21–D23 in `PLAN.md`.
+- **Next**: F8 (`.map` loader with rejection by undeclared char — char and line,
+  the app keeps going; placement on the grid). New messages must be added to
+  `error-messages.md` in the same commit.
 
 ## Additional Context Files
 
 - `error-messages.md` — full catalog of every error message the project throws
-  (lexer, parser, semantic, loaders, plus slots reserved for F7 runtime / F8 map).
-  **Append new messages there when they are added.**
+  (lexer, parser, semantic, loaders, interpreter and actions; F8 map slots
+  reserved). **Append new messages there when they are added.**
