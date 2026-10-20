@@ -42,11 +42,12 @@ instinct/               Python package (phases F1+)
                         functions, perceptions, interpreter (F6–F7 done)
   world/                entities.py (Entity/Terrain/WorldObject/Creature),
                         world.py (Cell grid, placement, movement, walkable), rng.py (seeded Rng)
-  loaders/              errors.py (LoadError), definition.py (shared parser),
-                        terrain_loader.py, object_loader.py, registry.py (F4; .map/.ins in F8/F9)
+  loaders/              errors.py (LoadError + tag_errors), definition.py (shared parser),
+                        terrain_loader.py, object_loader.py, registry.py (F4 done),
+                        map_loader.py (F8 done; .ins creature loading in F9)
   sim/                  engine.py tick loop (F5; F7 adds kill() for mid-tick deaths) + cli.py terminal runner (F9)
   ui/                   Pygame app (F10)
-tests/                  pytest suite (219 tests: 4 scaffold + 24 lexer + 36 parser + 35 semantic + 28 world + 24 loaders + 16 engine + 25 interpreter + 27 actions)
+tests/                  pytest suite (239 tests: 4 scaffold + 24 lexer + 36 parser + 35 semantic + 28 world + 24 loaders + 20 map loader + 16 engine + 25 interpreter + 27 actions)
 terrains/ objects/ maps/ creatures/   runtime content dirs the app loads (spec §4.1), .gitkeep placeholders
 PLAN.md                 the project plan (source of truth for decisions)
 instinct.md             the specification (do not edit)
@@ -96,6 +97,16 @@ Two-stage front end → tree-walking interpreter (spec §5 forbids a bytecode VM
    reserves to `resource_max` (I3, D22) while creature health stays uncapped
    (I5); `reproduce` requires `health >= 1` or it is a natural abort (D22).
    `say` is the only action with `consumes_turn = False`.
+6. `loaders/map_loader.py` (F8 done): `load_map` parses the `.map` — first
+   content line is the name (spaces allowed), every following content line is a
+   same-length row, blank lines skipped, row edges stripped, no comments
+   (`#` is a rock cell, D11 does not apply) — and validates every char against
+   the `Registry` (D24–D26); any error rejects the whole file with all errors
+   collected at once, compiler-style. `GameMap` keeps the resolved prototypes
+   and `build_world` materializes them through `World.place_terrain`/
+   `place_object` clones (D27) — the loader calls the world, never the reverse
+   (§5). `load_maps` scans `maps/` alphabetically with path-tagged errors and
+   partial-failure tolerance (D28), mirroring `load_definitions` (§4.1.1).
 
 ## Conventions & Patterns
 
@@ -134,6 +145,12 @@ Two-stage front end → tree-walking interpreter (spec §5 forbids a bytecode VM
   `test_loaders.py` (24 tests: Anexo grass/rock end to end, one per loader error
     with exact line+message, `char #` not eaten as comment, I14 char clash,
     partial-failure directory scan via `tmp_path`),
+  `test_map_loader.py` (20 tests: Anexo map end to end incl. `build_world` on the
+    grid — dimensions, rock over base terrain, walkable rules, prototype clones —
+    one per §3.3 map error with exact line+message — unknown char, uneven rows,
+    empty/row-less sources, no-terrain registry —, blank-line skipping with
+    physical line numbers, row-edge stripping, `#` as a cell not a comment, and
+    the partial-failure `maps/` scan via `tmp_path`),
   `test_engine.py` (16 tests: E1–E4 order, L1 shuffle determinism incl. order,
     L8 newborn waits a tick incl. mid-tick queueing, sleeping still ages,
     `state()` read-only and frozen, `kill()` removal/counting incl. stale
@@ -195,12 +212,20 @@ Two-stage front end → tree-walking interpreter (spec §5 forbids a bytecode VM
   + `Entity.hit` upper clamp at `resource_max` (D22) + `tests/test_actions.py`
   incl. the four Anexo creatures running 50 ticks together; 219 tests green.
   Decisions D21–D23 in `PLAN.md`.
-- **Next**: F8 (`.map` loader with rejection by undeclared char — char and line,
-  the app keeps going; placement on the grid). New messages must be added to
-  `error-messages.md` in the same commit.
+- **F8 done**: `loaders/map_loader.py` — `load_map` validates every char against
+  the registry (§3.3: first content line is the name, same-length rows, unknown
+  char rejects the whole file with char and line, D24–D26), `GameMap`/`MapCell`
+  hold the resolved prototypes, `build_world` materializes the grid through
+  `place_terrain`/`place_object` clones without touching `world/` (D27),
+  `load_maps` scans `maps/` with partial-failure tolerance like
+  `load_definitions` (D28, §4.1.1), `tag_errors` now public in `errors.py` +
+  `tests/test_map_loader.py`; 239 tests green. Decisions D24–D28 in `PLAN.md`.
+- **Next**: F9 (loading pipeline §4.1.1: chain `.te → .ob → .map → .ins`,
+  creature loading, terminal CLI over `Engine.step()/state()`). New messages
+  must be added to `error-messages.md` in the same commit.
 
 ## Additional Context Files
 
 - `error-messages.md` — full catalog of every error message the project throws
-  (lexer, parser, semantic, loaders, interpreter and actions; F8 map slots
-  reserved). **Append new messages there when they are added.**
+  (lexer, parser, semantic, loaders incl. maps, interpreter and actions).
+  **Append new messages there when they are added.**

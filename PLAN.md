@@ -108,7 +108,7 @@ terrains/ objects/ maps/ creatures/   # dirs de carga que exige §4.1; contenido
 | **F5** ✅ | Motor de simulación: ticks, sorteo, fin de tick (§3.4), 8 leyes (§2.7), RNG |
 | **F6** ✅ | Intérprete (PC, 100 líneas, `wait`, variables) + percepciones §2.6 |
 | **F7** ✅ | Las 6 acciones restantes + política de ictus (matar + log) |
-| **F8** | Loader `.map` + rechazo por char + colocación |
+| **F8** ✅ | Loader `.map` + rechazo por char + colocación |
 | **F9** | Pipeline de carga (§4.1.1) + CLI |
 | **F10** | Interfaz Pygame: rejilla, colocación, play/pausa/paso/3 velocidades, reinicio, logs, **semilla visible + repetir** |
 | **F11** | Pruebas, ejemplos JoJo, extensiones, defensa |
@@ -124,7 +124,7 @@ todas ─▶ F11 (tests continuos)
 
 ### Estado
 
-F0–F7 implementadas con suite verde (219 tests, 2026-10-17). Siguiente: F8 (loader `.map` + colocación).
+F0–F8 implementadas con suite verde (239 tests, 2026-10-20). Siguiente: F9 (pipeline de carga §4.1.1 + CLI).
 
 ---
 
@@ -181,5 +181,10 @@ F0–F7 implementadas con suite verde (219 tests, 2026-10-17). Siguiente: F8 (lo
 | **D21** | Muertes a mitad de tick | **`Engine.kill()` unificado**: acciones e intérprete matan a través del motor (retira por identidad y cuenta); `TickReport.deaths` suma ictus, combate y fin de tick | §3.4 «se queda tiesa ahí mismo»; el bucle de turnos de F5 ya saltaba a las muertas mid-tick |
 | **D22** | Cantidades negativas | **Literales + topes**: se aplican tal cual (un damage negativo repone); `hit` no deja la reserva de terreno/objeto pasar de `resource_max` (I3); la vida de criaturas no tiene techo (I5); `reproduce` exige `health >= 1` para nacer, si no hay aborto natural | §2.4 «el lenguaje no impone límites… la simulación se encarga de premiar o castigar»; I3/I4 |
 | **D23** | Formato del registro | **`say` → `Nombre dice: X` · `roar` → `Nombre ruge: X` · ictus → `Nombre: línea N: mensaje`** | §2.4 say/roar; §2.8 «aparece en los logs»; §4.1 registro de la aplicación |
+| **D24** | Forma del `.map` | **Primera línea con contenido = nombre** (`strip`, admite espacios); líneas en blanco ignoradas en cualquier posición; filas con `.strip()` en bordes e interior literal; **sin comentarios** (`#` es una celda de roca, D11 no aplica); números de línea físicos | §3.3; robustez análoga a D11; un espacio nunca puede declararse como `char` (`split()` en `.te`/`.ob`), así que recortar bordes no puede ocultar celdas legales |
+| **D25** | Filas de distinto largo | **Rechazo del mapa**: la 1ª fila fija el ancho; un error `las filas deben medir N caracteres, no M` por cada fila disconforme, acumulado con los demás (modo pánico) | §3.3 «todas del mismo largo»; la spec no fija el mensaje |
+| **D26** | Char desconocido | **`char desconocido 'X'` por cada celda ofensiva con su línea física** (nombre = línea 1); se recogen todos y el archivo se rechaza entero: `map is None ⇔ errors ≠ []`, igual que `TerrainResult` | §3.3 «dice cuál es el char y en qué línea»; §2.8 estilo pánico |
+| **D27** | Frontera parseo/colocación | **`load_map` valida y devuelve `GameMap` con prototipos ya resueltos** (autocontenido: luego nada puede fallar); **`build_world`** coloca con `place_terrain`/`place_object` existentes (clones, I3). **Cero cambios en `world/`** | GUIA_WORLD_LOADERS §7; §5 el loader llama al mundo, nunca al revés |
+| **D28** | Escaneo de `maps/` | **`load_maps(dir, registry)` espejando `load_definitions`**: orden alfabético, errores etiquetados con `.path` (`tag_errors` pública en `errors.py`), fallo parcial: solo los mapas válidos vuelven | §4.1.1 «la aplicación sigue funcionando»; D9 |
 
 **Pendientes menores (no bloqueantes):** textos/estética de la UI, cuántas extensiones JoJo se implementan (mínimo viable: ejemplos de `.ins`/`.te`/`.ob`/`.map` que usen solo la base).
