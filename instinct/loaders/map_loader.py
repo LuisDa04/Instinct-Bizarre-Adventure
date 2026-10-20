@@ -2,10 +2,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 
 from ..world.entities import Terrain, WorldObject
 from ..world.world import World
-from .errors import LoadError
+from .errors import LoadError, tag_errors
 from .registry import Registry
 
 
@@ -159,3 +160,29 @@ def build_world(game_map: GameMap) -> World:
             if cell.object is not None:
                 world.place_object(x, y, cell.object)
     return world
+
+
+def load_maps(
+    maps_dir: Path, registry: Registry
+) -> tuple[list[GameMap], list[LoadError]]:
+    """Carga todos los .map de una carpeta y devuelve los válidos y los errores.
+
+    Recorre la carpeta en orden alfabético, conserva lo válido y acumula los
+    errores etiquetados con su ruta, igual que load_definitions: un mapa roto
+    no impide cargar el resto (spec §4.1.1, la aplicación sigue funcionando).
+
+    Args:
+        maps_dir: Carpeta con ficheros *.map.
+        registry: Registro de terrenos y objetos ya cargados (I13).
+
+    Returns:
+        Tupla (mapas, errores): solo los mapas sin errores entran en la lista.
+    """
+    maps: list[GameMap] = []
+    errors: list[LoadError] = []
+    for path in sorted(maps_dir.glob("*.map")):
+        result = load_map(path.read_text(encoding="utf-8"), registry)
+        errors.extend(tag_errors(result.errors, path))
+        if result.map is not None:
+            maps.append(result.map)
+    return maps, errors

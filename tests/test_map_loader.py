@@ -1,5 +1,5 @@
 from instinct.loaders.errors import LoadError
-from instinct.loaders.map_loader import build_world, load_map
+from instinct.loaders.map_loader import build_world, load_map, load_maps
 from instinct.loaders.object_loader import load_object
 from instinct.loaders.registry import Registry
 from instinct.loaders.terrain_loader import load_terrain
@@ -231,3 +231,31 @@ def test_build_world_starts_without_creatures() -> None:
     assert list(world.creatures()) == []
     assert world.creature_at(0, 0) is None
     assert world.creature_at(19, 6) is None
+
+
+def test_load_maps_keeps_valid_and_reports_broken(tmp_path) -> None:
+    maps = tmp_path / "maps"
+    maps.mkdir()
+    (maps / "anexo.map").write_text(ANEXO, encoding="utf-8")
+    (maps / "bad_char.map").write_text("Cueva\n..X.\n", encoding="utf-8")
+    (maps / "uneven.map").write_text("Lugar\n....\n...\n", encoding="utf-8")
+    registry = make_registry((GRASS,), (ROCK,))
+    loaded, errors = load_maps(maps, registry)
+    assert [game_map.name for game_map in loaded] == ["Plain with rocks"]
+    assert [
+        (error.line, error.message, error.path) for error in errors
+    ] == [
+        (2, "char desconocido 'X'", str(maps / "bad_char.map")),
+        (3, "las filas deben medir 4 caracteres, no 3", str(maps / "uneven.map")),
+    ]
+
+
+def test_load_maps_returns_alphabetical_by_filename(tmp_path) -> None:
+    maps = tmp_path / "maps"
+    maps.mkdir()
+    (maps / "z_map.map").write_text("Primero\n...\n", encoding="utf-8")
+    (maps / "a_map.map").write_text("Segundo\n...\n", encoding="utf-8")
+    registry = make_registry((GRASS,), (ROCK,))
+    loaded, errors = load_maps(maps, registry)
+    assert errors == []
+    assert [game_map.name for game_map in loaded] == ["Segundo", "Primero"]
