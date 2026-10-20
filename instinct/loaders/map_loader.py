@@ -4,6 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from ..world.entities import Terrain, WorldObject
+from ..world.world import World
 from .errors import LoadError
 from .registry import Registry
 
@@ -134,3 +135,27 @@ def _resolve(
         errors.append(LoadError(number, f"char desconocido {char!r}"))
         resolved.append(MapCell(terrain=base))
     return resolved
+
+
+def build_world(game_map: GameMap) -> World:
+    """Construye el mundo del mapa colocando terrenos y objetos casilla a casilla.
+
+    La rejilla nace cubierta de clones del terreno base (§3.3) y solo se
+    rellenan las casillas que difieren: el terreno propio con place_terrain y
+    el objeto encima con place_object. Ambos colocan clones con la reserva
+    llena, así el mapa y el mundo no comparten instancias (I3).
+
+    Args:
+        game_map: Mapa ya validado por load_map.
+
+    Returns:
+        Mundo nuevo de game_map.width x game_map.height, sin criaturas.
+    """
+    world = World(game_map.width, game_map.height, game_map.base)
+    for y, row in enumerate(game_map.cells):
+        for x, cell in enumerate(row):
+            if cell.terrain is not game_map.base:
+                world.place_terrain(x, y, cell.terrain)
+            if cell.object is not None:
+                world.place_object(x, y, cell.object)
+    return world

@@ -1,5 +1,5 @@
 from instinct.loaders.errors import LoadError
-from instinct.loaders.map_loader import load_map
+from instinct.loaders.map_loader import build_world, load_map
 from instinct.loaders.object_loader import load_object
 from instinct.loaders.registry import Registry
 from instinct.loaders.terrain_loader import load_terrain
@@ -171,3 +171,63 @@ def test_result_map_is_none_iff_errors() -> None:
     for source in ("", "Solo nombre\n", "M\n..X\n", ANEXO):
         result = load_map(source, registry)
         assert (result.map is None) == bool(result.errors)
+
+
+def anexo_world():
+    """Construye el mundo del mapa del Anexo con hierba y roca."""
+    registry = make_registry((GRASS,), (ROCK,))
+    result = load_map(ANEXO, registry)
+    assert result.map is not None
+    return registry, result.map, build_world(result.map)
+
+
+def test_build_world_matches_map_dimensions_and_cells() -> None:
+    _, _, world = anexo_world()
+    assert (world.width, world.height) == (20, 7)
+    assert world.terrain_at(0, 0).name == "Grass"
+    assert world.object_at(3, 1) is not None
+    assert world.object_at(3, 1).name == "Rock"
+    assert world.object_at(0, 0) is None
+    assert world.walkable(0, 0)
+    assert not world.walkable(3, 1)
+
+
+def test_build_world_objects_sit_on_the_base_terrain() -> None:
+    _, _, world = anexo_world()
+    terrain = world.terrain_at(3, 1)
+    assert terrain.name == "Grass"
+    assert world.object_at(3, 1) is not None
+    assert world.creature_at(3, 1) is None
+
+
+def test_build_world_places_clones_not_prototypes() -> None:
+    registry, game_map, world = anexo_world()
+    first = world.object_at(3, 1)
+    second = world.object_at(4, 1)
+    assert first is not second
+    assert first is not registry.object_for("#")
+    first.hit(100)
+    assert first.reserve == 0
+    assert second.reserve == 100
+    cell_terrain = world.terrain_at(0, 0)
+    assert cell_terrain is not registry.terrain_for(".")
+    assert cell_terrain is not game_map.cells[0][0].terrain
+    assert cell_terrain.reserve == 100
+
+
+def test_build_world_places_non_base_terrains() -> None:
+    registry = make_registry((GRASS, WATER), (ROCK,))
+    result = load_map("Costa\nww.\n", registry)
+    assert result.map is not None
+    world = build_world(result.map)
+    assert world.terrain_at(0, 0).name == "Water"
+    assert world.terrain_at(0, 0).reserve == 10
+    assert world.terrain_at(2, 0).name == "Grass"
+    assert world.walkable(0, 0)
+
+
+def test_build_world_starts_without_creatures() -> None:
+    _, _, world = anexo_world()
+    assert list(world.creatures()) == []
+    assert world.creature_at(0, 0) is None
+    assert world.creature_at(19, 6) is None
