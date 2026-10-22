@@ -51,7 +51,9 @@ tests/                  pytest suite (239 tests: 4 scaffold + 24 lexer + 36 pars
 terrains/ objects/ maps/ creatures/   runtime content dirs the app loads (spec §4.1), .gitkeep placeholders
 PLAN.md                 the project plan (source of truth for decisions)
 instinct.md             the specification (do not edit)
-GUIA_AST_PARSER.md      local study guide (plain-Spanish AST+parser walkthrough, gitignored, not pushed)
+GUIA_*.md               local study guides, one per phase (AST/parser, resolver,
+                        world+loaders, engine F5, interpreter F6, actions+ictus F7;
+                        plain-Spanish walkthroughs, gitignored, not pushed)
 ```
 
 ## Core Architecture
