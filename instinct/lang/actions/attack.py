@@ -1,4 +1,4 @@
-"""Acción `attack`: golpea lo que hay en la casilla apuntada (§2.4)."""
+"""Acción `attack`: golpea lo que hay en la casilla apuntada."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ class Attack(Action):
     arity = 3
 
     def validate(self, args: list[int | str], line: int) -> None:
-        """Exige dx/dy en {-1, 0, 1} y un damage entero (§2.8).
+        """Exige dx/dy en {-1, 0, 1} y un damage entero.
 
         Args:
             args: Argumentos [dx, dy, damage] ya evaluados.
@@ -24,7 +24,7 @@ class Attack(Action):
         self._require_number(args, 2, line)
 
     def apply(self, ctx: ActionContext, args: list[int | str]) -> None:
-        """Aplica el daño al objetivo; fuera del mapa no hace nada (§3.4).
+        """Aplica el daño al objetivo; fuera del mapa no hace nada.
 
         Args:
             ctx: Mundo, motor y criatura que golpea.

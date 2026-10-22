@@ -65,13 +65,13 @@ def refresh(creature: Creature, world: World, engine: Engine) -> TurnFrame:
 
 
 def _ground(frame: TurnFrame):
-    """Devuelve el terreno bajo la criatura, que siempre existe (I1)."""
+    """Devuelve el terreno bajo la criatura, que siempre existe."""
     ground = frame.world.terrain_at(frame.creature.x, frame.creature.y)
     assert ground is not None
     return ground
 
 
-#: Un resolvedor por percepción: la alternativa al `if nombre == ...` de §5.
+#: Un resolvedor por percepción: la alternativa a un `if nombre == ...` por cada una.
 PERCEPTION_RESOLVERS: dict[str, Callable[[TurnFrame], Value]] = {
     "health": lambda frame: frame.creature.health,
     "age": lambda frame: frame.creature.age,
@@ -113,7 +113,7 @@ def perception_value(name: str, frame: TurnFrame) -> Value:
     """Devuelve el valor de la percepción para la foto dada.
 
     Args:
-        name: Nombre de una de las 31 percepciones de §2.6.
+        name: Nombre de una de las 31 percepciones del lenguaje.
         frame: Foto tomada al empezar el turno.
 
     Returns:

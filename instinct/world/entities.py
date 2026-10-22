@@ -13,14 +13,14 @@ class Entity:
 
     @property
     def max_reserve(self) -> int | None:
-        """Devuelve el tope superior de la reserva; None = sin tope (I5)."""
+        """Devuelve el tope superior de la reserva; None = sin tope."""
         return None
 
     def hit(self, damage: int) -> bool:
         """Resta daño a la reserva sin salirse de [0, tope] e indica si quedó agotada.
 
         Args:
-            damage: Cantidad a restar; negativo repone hasta el tope (D22).
+            damage: Cantidad a restar; negativo repone hasta el tope.
 
         Returns:
             True si la reserva quedó en 0, False en caso contrario.
@@ -57,7 +57,7 @@ class Terrain(Entity):
 
     @property
     def max_reserve(self) -> int:
-        """Devuelve el tope de la reserva: resource_max (I3)."""
+        """Devuelve el tope de la reserva: resource_max."""
         return self.resource_max
 
     def regenerate(self) -> None:
@@ -96,7 +96,7 @@ class WorldObject(Entity):
 
     @property
     def max_reserve(self) -> int:
-        """Devuelve el tope de la reserva: resource_max (I3)."""
+        """Devuelve el tope de la reserva: resource_max."""
         return self.resource_max
 
     def clone(self) -> WorldObject:

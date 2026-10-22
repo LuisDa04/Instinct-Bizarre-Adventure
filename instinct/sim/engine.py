@@ -14,7 +14,7 @@ class TickReport:
     """Representa el resumen de un tick: número, muertes, nacimientos y orden de turno.
 
     Invariante: order trae posiciones al inicio en orden de actuación, sin
-    recién nacidos; deaths suma ictus, combate y fin de tick (D21).
+    recién nacidos; deaths suma ictus, combate y fin de tick.
     """
 
     tick: int
@@ -88,12 +88,12 @@ class Engine:
         """Devuelve un entero en [0, 99] del único RNG para la percepción `random`.
 
         Returns:
-            Tirada del generador compartido con el sorteo de turnos (I8).
+            Tirada del generador compartido con el sorteo de turnos.
         """
         return self._rng.perception_random()
 
     def emit_roar(self, x: int, y: int, text: str) -> None:
-        """Encola un rugido emitido en este tick para oírlo en el siguiente (D5).
+        """Encola un rugido emitido en este tick para oírlo en el siguiente.
 
         Args:
             x: Columna de emisión.
@@ -125,7 +125,7 @@ class Engine:
         self._pending.append(creature)
 
     def kill(self, creature: Creature) -> bool:
-        """Retira a la criatura del mundo y cuenta su muerte en el tick actual (D21).
+        """Retira a la criatura del mundo y cuenta su muerte en el tick actual.
 
         Args:
             creature: Criatura viva; se localiza por identidad aunque su
@@ -233,7 +233,7 @@ class Engine:
         """Publica los rugidos del tick para oírlos en el siguiente y vacía la cola.
 
         Los oyentes se calculan con las criaturas vivas: cada una oye lo emitido
-        a distancia Chebyshev menor o igual que su propia visión (D5).
+        a distancia Chebyshev menor o igual que su propia visión.
         """
         published: list[Roar] = []
         for x, y, text in self._emitted:

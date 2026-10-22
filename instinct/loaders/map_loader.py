@@ -14,8 +14,8 @@ from .registry import Registry
 class MapCell:
     """Representa una casilla de mapa con su terreno y su objeto opcional.
 
-    Invariante: terrain siempre presente (I1); object es opcional y excluye
-    a cualquier criatura, que aquí no existe todavía.
+    Invariante: terrain siempre presente; object es opcional y aún no hay
+    criaturas en el mapa.
     """
 
     terrain: Terrain
@@ -49,7 +49,7 @@ class GameMap:
 class MapResult:
     """Representa el resultado de cargar un mapa: instancia o None más errores.
 
-    Invariante: map es None si y solo si errors no está vacío (D26).
+    Invariante: map es None si y solo si errors no está vacío.
     """
 
     map: GameMap | None
@@ -60,13 +60,13 @@ def load_map(source: str, registry: Registry) -> MapResult:
     """Carga un mapa desde su texto validando cada char contra el registro.
 
     La primera línea con contenido es el nombre y cada línea siguiente con
-    contenido es una fila de casillas del mismo largo (spec §3.3). Cualquier
+    contenido es una fila de casillas del mismo largo. Cualquier
     error (filas disconformes, chars sin dueño) rechaza el archivo entero
     con todos sus errores recogidos de una vez, como el compilador.
 
     Args:
         source: Texto con el nombre en la primera línea y las filas después.
-        registry: Registro de terrenos y objetos ya cargados (I13).
+        registry: Registro de terrenos y objetos ya cargados.
 
     Returns:
         MapResult con map válido y errores vacíos, o map None y errores no vacíos.
@@ -117,7 +117,7 @@ def _resolve(
 ) -> list[MapCell]:
     """Traduce los chars de una fila a casillas o registra los desconocidos.
 
-    Los chars de objeto resuelven al terreno base debajo (spec §3.3); los
+    Los chars de objeto resuelven al terreno base debajo; los
     desconocidos dejan una casilla provisional que se descarta al rechazar.
 
     Returns:
@@ -141,10 +141,10 @@ def _resolve(
 def build_world(game_map: GameMap) -> World:
     """Construye el mundo del mapa colocando terrenos y objetos casilla a casilla.
 
-    La rejilla nace cubierta de clones del terreno base (§3.3) y solo se
+    La rejilla nace cubierta de clones del terreno base y solo se
     rellenan las casillas que difieren: el terreno propio con place_terrain y
     el objeto encima con place_object. Ambos colocan clones con la reserva
-    llena, así el mapa y el mundo no comparten instancias (I3).
+    llena, así el mapa y el mundo no comparten instancias.
 
     Args:
         game_map: Mapa ya validado por load_map.
@@ -169,11 +169,11 @@ def load_maps(
 
     Recorre la carpeta en orden alfabético, conserva lo válido y acumula los
     errores etiquetados con su ruta, igual que load_definitions: un mapa roto
-    no impide cargar el resto (spec §4.1.1, la aplicación sigue funcionando).
+    no impide cargar el resto, la aplicación sigue funcionando.
 
     Args:
         maps_dir: Carpeta con ficheros *.map.
-        registry: Registro de terrenos y objetos ya cargados (I13).
+        registry: Registro de terrenos y objetos ya cargados.
 
     Returns:
         Tupla (mapas, errores): solo los mapas sin errores entran en la lista.

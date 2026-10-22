@@ -1,4 +1,4 @@
-"""Acción `move`: avanza casilla a casilla hasta un tope (§2.4)."""
+"""Acción `move`: avanza casilla a casilla hasta un tope."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ class Move(Action):
     arity = 3
 
     def validate(self, args: list[int | str], line: int) -> None:
-        """Exige dx/dy en {-1, 0, 1} y un speed entero (§2.8).
+        """Exige dx/dy en {-1, 0, 1} y un speed entero.
 
         Args:
             args: Argumentos [dx, dy, speed] ya evaluados.
@@ -26,7 +26,7 @@ class Move(Action):
         """Camina una a una hasta `speed` casillas o la primera no pisable.
 
         Con (0, 0) o speed no positivo no avanza; el turno se gasta igual
-        porque toda acción salvo say lo consume (§2.4).
+        porque toda acción salvo say lo consume.
 
         Args:
             ctx: Mundo y criatura que camina.

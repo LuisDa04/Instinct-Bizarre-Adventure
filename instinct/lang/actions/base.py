@@ -1,4 +1,4 @@
-"""Base de las acciones del lenguaje y contexto para aplicarlas (§5)."""
+"""Base de las acciones del lenguaje y contexto para aplicarlas."""
 
 from __future__ import annotations
 
@@ -45,7 +45,7 @@ class Action(ABC):
     consumes_turn: bool = True
 
     def _require_number(self, args: list[int | str], index: int, line: int) -> None:
-        """Comprueba que el argumento sea un entero o lanza ictus (§2.8).
+        """Comprueba que el argumento sea un entero o lanza ictus.
 
         Args:
             args: Argumentos ya evaluados de la acción.
@@ -56,7 +56,7 @@ class Action(ABC):
             raise ExecutionError(line, f"la acción {self.name!r} espera un número")
 
     def _require_direction(self, args: list[int | str], index: int, line: int) -> None:
-        """Comprueba que dx/dy sea un entero en {-1, 0, 1} o lanza ictus (§2.8).
+        """Comprueba que dx/dy sea un entero en {-1, 0, 1} o lanza ictus.
 
         Args:
             args: Argumentos ya evaluados de la acción.

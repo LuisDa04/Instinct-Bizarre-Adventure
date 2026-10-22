@@ -1,4 +1,4 @@
-"""Resolución de objetivos y golpe compartido por attack y consume (§2.4, §3.4)."""
+"""Resolución de objetivos y golpe compartido por attack y consume."""
 
 from __future__ import annotations
 
@@ -10,8 +10,8 @@ from .base import ActionContext
 def attacked_entity(ctx: ActionContext, dx: int, dy: int) -> Entity | None:
     """Devuelve lo que golpea la acción según su dirección.
 
-    Con (0, 0) el objetivo es el terreno bajo la propia criatura (§2.4);
-    fuera del mapa no hay objetivo: la acción no hace nada (§3.4).
+    Con (0, 0) el objetivo es el terreno bajo la propia criatura;
+    fuera del mapa no hay objetivo: la acción no hace nada.
 
     Args:
         ctx: Mundo, motor y criatura que golpea.
@@ -36,12 +36,12 @@ def attacked_entity(ctx: ActionContext, dx: int, dy: int) -> Entity | None:
 
 
 def strike(ctx: ActionContext, target: Entity, damage: int) -> None:
-    """Aplica el daño al objetivo y entierra en el acto a la criatura muerta (§3.4).
+    """Aplica el daño al objetivo y entierra en el acto a la criatura muerta.
 
     Args:
         ctx: Mundo, motor y criatura que golpea.
         target: Entidad golpeada; su reserva pierde el daño.
-        damage: Cantidad a restar; negativo repone hasta el tope (D22).
+        damage: Cantidad a restar; negativo repone hasta el tope.
     """
     target.hit(damage)
     if isinstance(target, Creature) and target.health <= 0:

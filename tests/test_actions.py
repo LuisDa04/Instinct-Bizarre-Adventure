@@ -1,4 +1,4 @@
-"""Pruebas de las siete acciones a través del intérprete (§2.4, §3.4)."""
+"""Pruebas de las siete acciones a través del intérprete."""
 
 from __future__ import annotations
 
@@ -355,7 +355,7 @@ def test_reproduce_places_child_that_acts_next_tick() -> None:
     assert child is not None and child is not mother
     assert child.program is mother.program
     assert child.name == "Uruk"
-    assert child.health == 19  # nace con 20 y el fin de tick cobra 1 (§3.4)
+    assert child.health == 19  # nace con 20 y el fin de tick cobra 1
     assert child.age == 1
     assert child.variables == {}
     assert child.pc == child.program.labels["start"]

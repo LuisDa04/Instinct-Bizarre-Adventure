@@ -11,7 +11,7 @@ class Environment:
     """Resuelve un nombre a su valor con el orden percepción, constante, variable.
 
     El diccionario de variables es el de la criatura: lo que se guarda aquí
-    sobrevive entre turnos (ley 7 de §2.7).
+    sobrevive entre turnos.
     """
 
     def __init__(self, variables: dict[str, int | str], frame: TurnFrame) -> None:
@@ -46,7 +46,7 @@ class Environment:
         raise ExecutionError(line, f"variable no asignada {name!r}")
 
     def set(self, name: str, value: int | str) -> None:
-        """Guarda la variable, creándola si no existía (§2.3).
+        """Guarda la variable, creándola si no existía.
 
         Args:
             name: Variable propia (el resolver prohíbe percepciones y constantes).

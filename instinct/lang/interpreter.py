@@ -1,4 +1,4 @@
-"""Intérprete que recorre el AST instrucción a instrucción (§2.7)."""
+"""Intérprete que recorre el AST instrucción a instrucción."""
 
 from __future__ import annotations
 
@@ -34,7 +34,7 @@ from .values import apply_binary, negate, truthy
 if TYPE_CHECKING:
     from instinct.sim.engine import Engine
 
-#: Máximo de líneas ejecutadas por turno; sin acción equivale a `wait(1)` (ley 5).
+#: Máximo de líneas ejecutadas por turno; sin acción equivale a `wait(1)`.
 MAX_LINES = 100
 
 
@@ -54,7 +54,7 @@ class Interpreter:
 
         Args:
             world: Rejilla donde están colocadas las criaturas.
-            engine: Motor que aporta tick, aleatoriedad y rugidos (I8, D5).
+            engine: Motor que aporta tick, aleatoriedad y rugidos.
             log: Destino de textos o None para descartarlos.
         """
         self._world = world
@@ -65,7 +65,7 @@ class Interpreter:
         """Ejecuta un turno: refresca percepciones y avanza hasta una acción.
 
         Un error de ejecución es un ictus: la criatura muere en el acto y el
-        mensaje con su línea va al registro (§2.8, D21, D23).
+        mensaje con su línea va al registro.
 
         Args:
             creature: Criatura viva y despierta que recibe el turno.
@@ -157,7 +157,7 @@ class Interpreter:
     def _eval(
         self, expr: Expr, creature: Creature, env: Environment, frame: TurnFrame
     ) -> int | str:
-        """Evalúa una expresión a entero o texto con las reglas de §2.5.
+        """Evalúa una expresión a entero o texto con las reglas de tipos del lenguaje.
 
         Args:
             expr: Expresión del AST ya analizada.
@@ -199,7 +199,7 @@ class Interpreter:
             frame: Foto de percepciones para `see` y `name`.
 
         Returns:
-            1 si la combinación es verdadera y 0 si no (§2.5).
+            1 si la combinación es verdadera y 0 si no.
         """
         left = self._eval(expr.left, creature, env, frame)
         if expr.op is TokenType.AND:

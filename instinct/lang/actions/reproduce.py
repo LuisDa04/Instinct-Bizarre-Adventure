@@ -1,4 +1,4 @@
-"""Acción `reproduce`: crea una cría adyacente a costa de vida (§2.4)."""
+"""Acción `reproduce`: crea una cría adyacente a costa de vida."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ class Reproduce(Action):
     arity = 3
 
     def validate(self, args: list[int | str], line: int) -> None:
-        """Exige dx/dy en {-1, 0, 1} y un health entero (§2.8).
+        """Exige dx/dy en {-1, 0, 1} y un health entero.
 
         Args:
             args: Argumentos [dx, dy, health] ya evaluados.
@@ -29,7 +29,7 @@ class Reproduce(Action):
 
         Requiere dirección real (distancia 1), casilla con solo terreno,
         cría viable (health >= 1) y madre con más vida que ese costo; cualquier
-        fallo es un aborto natural que igualmente gasta el turno (§2.4, D22).
+        fallo es un aborto natural que igualmente gasta el turno.
 
         Args:
             ctx: Mundo, motor y madre.

@@ -1,4 +1,4 @@
-"""Acción `wait`: deja pasar turnos sin ejecutar nada (§2.4)."""
+"""Acción `wait`: deja pasar turnos sin ejecutar nada."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ class Wait(Action):
     arity = 1
 
     def validate(self, args: list[int | str], line: int) -> None:
-        """Exige un número o lanza ictus (§2.8).
+        """Exige un número o lanza ictus.
 
         Args:
             args: Argumento `n` ya evaluado.
@@ -23,7 +23,7 @@ class Wait(Action):
             raise ExecutionError(line, "la acción 'wait' espera un número")
 
     def apply(self, ctx: ActionContext, args: list[int | str]) -> None:
-        """Programa los `n - 1` turnos siguientes sin ejecutar nada (ley 4).
+        """Programa los `n - 1` turnos siguientes sin ejecutar nada.
 
         Args:
             ctx: Contexto con la criatura que duerme.

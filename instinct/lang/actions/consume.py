@@ -1,4 +1,4 @@
-"""Acción `consume`: golpea como attack y además cura a quien consume (§2.4)."""
+"""Acción `consume`: golpea como attack y además cura a quien consume."""
 
 from __future__ import annotations
 
@@ -7,13 +7,13 @@ from .strike import attacked_entity, strike
 
 
 class Consume(Action):
-    """Golpea el objetivo y gana heal puntos de vida sin tope (I5)."""
+    """Golpea el objetivo y gana heal puntos de vida sin tope."""
 
     name = "consume"
     arity = 4
 
     def validate(self, args: list[int | str], line: int) -> None:
-        """Exige dx/dy en {-1, 0, 1} y damage/heal enteros (§2.8).
+        """Exige dx/dy en {-1, 0, 1} y damage/heal enteros.
 
         Args:
             args: Argumentos [dx, dy, damage, heal] ya evaluados.
@@ -25,11 +25,11 @@ class Consume(Action):
         self._require_number(args, 3, line)
 
     def apply(self, ctx: ActionContext, args: list[int | str]) -> None:
-        """Golpea como attack y cura; sin objetivo no hace nada (§3.4).
+        """Golpea como attack y cura; sin objetivo no hace nada.
 
-        La cura no se relaciona con el daño ni con el objetivo (§2.4); un
+        La cura no se relaciona con el daño ni con el objetivo; un
         heal negativo daña a la propia criatura y, si la deja en 0 o menos,
-        muere en el acto (§3.4, D22).
+        muere en el acto.
 
         Args:
             ctx: Mundo, motor y criatura que consume.

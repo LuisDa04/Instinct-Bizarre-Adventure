@@ -8,8 +8,8 @@ GRASS = "terrain Grass\nchar .\nresource_max 100\nregen 2\n"
 WATER = "terrain Water\nchar w\nresource_max 10\nregen 1\n"
 ROCK = "object Rock\nchar #\nresource_max 100\n"
 
-# Mapa del Anexo de instinct.md (§3.3): 7 filas de 20 columnas.
-ANEXO = (
+# Mapa de 7 filas y 20 columnas con hierba y roca.
+PLAIN_MAP = (
     "Plain with rocks\n"
     "....................\n"
     "...##...............\n"
@@ -49,9 +49,9 @@ def map_errors(source: str, registry: Registry) -> list[LoadError]:
     return result.errors
 
 
-def test_valid_anexo_map_loads() -> None:
+def test_valid_plain_map_loads() -> None:
     registry = make_registry((GRASS,), (ROCK,))
-    result = load_map(ANEXO, registry)
+    result = load_map(PLAIN_MAP, registry)
     assert result.errors == []
     assert result.map is not None
     game_map = result.map
@@ -168,21 +168,21 @@ def test_registry_without_terrains_is_rejected() -> None:
 
 def test_result_map_is_none_iff_errors() -> None:
     registry = make_registry((GRASS,), (ROCK,))
-    for source in ("", "Solo nombre\n", "M\n..X\n", ANEXO):
+    for source in ("", "Solo nombre\n", "M\n..X\n", PLAIN_MAP):
         result = load_map(source, registry)
         assert (result.map is None) == bool(result.errors)
 
 
-def anexo_world():
-    """Construye el mundo del mapa del Anexo con hierba y roca."""
+def plain_world():
+    """Construye el mundo del mapa de ejemplo con hierba y roca."""
     registry = make_registry((GRASS,), (ROCK,))
-    result = load_map(ANEXO, registry)
+    result = load_map(PLAIN_MAP, registry)
     assert result.map is not None
     return registry, result.map, build_world(result.map)
 
 
 def test_build_world_matches_map_dimensions_and_cells() -> None:
-    _, _, world = anexo_world()
+    _, _, world = plain_world()
     assert (world.width, world.height) == (20, 7)
     assert world.terrain_at(0, 0).name == "Grass"
     assert world.object_at(3, 1) is not None
@@ -193,7 +193,7 @@ def test_build_world_matches_map_dimensions_and_cells() -> None:
 
 
 def test_build_world_objects_sit_on_the_base_terrain() -> None:
-    _, _, world = anexo_world()
+    _, _, world = plain_world()
     terrain = world.terrain_at(3, 1)
     assert terrain.name == "Grass"
     assert world.object_at(3, 1) is not None
@@ -201,7 +201,7 @@ def test_build_world_objects_sit_on_the_base_terrain() -> None:
 
 
 def test_build_world_places_clones_not_prototypes() -> None:
-    registry, game_map, world = anexo_world()
+    registry, game_map, world = plain_world()
     first = world.object_at(3, 1)
     second = world.object_at(4, 1)
     assert first is not second
@@ -227,7 +227,7 @@ def test_build_world_places_non_base_terrains() -> None:
 
 
 def test_build_world_starts_without_creatures() -> None:
-    _, _, world = anexo_world()
+    _, _, world = plain_world()
     assert list(world.creatures()) == []
     assert world.creature_at(0, 0) is None
     assert world.creature_at(19, 6) is None
@@ -236,7 +236,7 @@ def test_build_world_starts_without_creatures() -> None:
 def test_load_maps_keeps_valid_and_reports_broken(tmp_path) -> None:
     maps = tmp_path / "maps"
     maps.mkdir()
-    (maps / "anexo.map").write_text(ANEXO, encoding="utf-8")
+    (maps / "plain.map").write_text(PLAIN_MAP, encoding="utf-8")
     (maps / "bad_char.map").write_text("Cueva\n..X.\n", encoding="utf-8")
     (maps / "uneven.map").write_text("Lugar\n....\n...\n", encoding="utf-8")
     registry = make_registry((GRASS,), (ROCK,))

@@ -41,7 +41,7 @@ def negate(value: int | str, line: int) -> int:
 
 
 def apply_binary(op: TokenType, left: int | str, right: int | str, line: int) -> int:
-    """Aplica un operador binario no lógico con las reglas de tipo de §2.5.
+    """Aplica un operador binario no lógico con las reglas de tipos del lenguaje.
 
     Args:
         op: Operador a aplicar.

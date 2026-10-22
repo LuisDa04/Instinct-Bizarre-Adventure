@@ -1,4 +1,4 @@
-"""Funciones reservadas `see` y `name` con coordenadas absolutas (D1)."""
+"""Funciones reservadas `see` y `name` con coordenadas absolutas."""
 
 from __future__ import annotations
 

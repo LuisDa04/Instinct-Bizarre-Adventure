@@ -1,4 +1,4 @@
-"""Acciones del lenguaje: una clase por acción sobre una base común (§5)."""
+"""Acciones del lenguaje: una clase por acción sobre una base común."""
 
 from __future__ import annotations
 

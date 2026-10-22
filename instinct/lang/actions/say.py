@@ -1,4 +1,4 @@
-"""Acción `say`: muestra un texto sin consumir turno (§2.4)."""
+"""Acción `say`: muestra un texto sin consumir turno."""
 
 from __future__ import annotations
 
@@ -13,10 +13,10 @@ class Say(Action):
     consumes_turn = False
 
     def validate(self, args: list[int | str], line: int) -> None:
-        """Acepta cualquier valor: texto o número (§2.5)."""
+        """Acepta cualquier valor: texto o número."""
 
     def apply(self, ctx: ActionContext, args: list[int | str]) -> None:
-        """Lleva el texto al registro (D23); sin registro se descarta.
+        """Lleva el texto al registro; sin registro se descarta.
 
         Args:
             ctx: Criatura que habla y registro destino.
