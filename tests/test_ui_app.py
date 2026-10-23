@@ -102,6 +102,18 @@ def test_speed_action_changes_tps(app: App) -> None:
     assert app.session.state.speed_tps == 30
 
 
+def test_speed_button_click_does_not_crash(app: App) -> None:
+    start_simulation(app)
+    event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, pos=(10, 10), button=1)
+    actions = app.controls.handle(event, {"speed": pygame.Rect(0, 0, 100, 30)})
+    for action in actions:
+        app._execute(action)
+    assert app.session.state.speed_tps == 5
+    for action in app.controls.handle(event, {"speed": pygame.Rect(0, 0, 100, 30)}):
+        app._execute(action)
+    assert app.session.state.speed_tps == 10
+
+
 def test_repeat_action_replays_with_new_seed(app: App) -> None:
     start_simulation(app)
     app._execute(UIAction("step"))

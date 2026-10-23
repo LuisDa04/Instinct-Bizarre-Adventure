@@ -104,6 +104,16 @@ def test_click_on_species_and_start(tmp_path) -> None:
     assert controls.handle(click((20, 60)), hotspots) == [UIAction("start")]
 
 
+def test_click_on_speed_button_cycles_with_index(tmp_path) -> None:
+    state = make_state(tmp_path)
+    state.phase = "simulation"
+    controls = Controls(state)
+    hotspots = {"speed": pygame.Rect(0, 0, 100, 30)}
+    assert controls.handle(click((10, 10)), hotspots) == [UIAction("speed", "1")]
+    state.speed_index = 3
+    assert controls.handle(click((10, 10)), hotspots) == [UIAction("speed", "0")]
+
+
 def test_click_grid_maps_to_cell(tmp_path) -> None:
     state = make_state(tmp_path)
     controls = Controls(state)

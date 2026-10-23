@@ -9,12 +9,13 @@ from .constants import (
     MAX_TILE_SIZE,
     MIN_TILE_SIZE,
     PHASE_PLACEMENT,
+    SPEEDS,
     ZOOM_STEP,
 )
 from .state import UIState
 
 #: Acciones de un solo nombre; el resto lleva dato en `value`.
-SIMPLE_ACTIONS = frozenset({"start", "pause", "step", "speed", "reset", "repeat", "quit"})
+SIMPLE_ACTIONS = frozenset({"start", "pause", "step", "reset", "repeat", "quit"})
 
 
 @dataclass(frozen=True)
@@ -139,6 +140,9 @@ class Controls:
         if key == "seed_input":
             self.state.seed_focused = True
             return []
+        if key == "speed":
+            next_index = (self.state.speed_index + 1) % len(SPEEDS)
+            return [UIAction("speed", str(next_index))]
         if key in SIMPLE_ACTIONS:
             return [UIAction(key)]
         return []
