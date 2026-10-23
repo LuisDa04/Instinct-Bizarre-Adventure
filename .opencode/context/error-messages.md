@@ -273,7 +273,18 @@ entidades.
 
 ---
 
-## 7. Pendientes (spec §2.8, PLAN §2) — aún NO implementados
+## 7. Interfaz — `instinct/ui/session.py` (1 mensaje)
+
+La interfaz reutiliza los mensajes del CLI en las fases de carga, colocación
+y simulación; solo añade uno propio para validar el arranque:
+
+| Mensaje | Nace en | Cuándo |
+|---|---|---|
+| `coloca al menos una criatura antes de empezar` | `Session.start` | Pulsar iniciar sin ninguna criatura colocada; va al registro de la sesión y no cambia de fase |
+
+---
+
+## 8. Pendientes (spec §2.8, PLAN §2) — aún NO implementados
 
 **Nada pendiente**: F7 (ictus) y F8 (mapas) ya registraron los suyos en las
 secciones 6 y 5. F9 orquesta la carga con los mensajes que ya existen; si una
@@ -282,7 +293,7 @@ español desde el principio.
 
 ---
 
-## 8. Tests
+## 9. Tests
 
 Los tests afirman pares `(line, message)` **exactos** (`tests/test_scanner.py`,
 `tests/test_parser.py`, `tests/test_resolver.py`, `tests/test_loaders.py`,
