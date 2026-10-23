@@ -1,7 +1,7 @@
-<!-- Context: main@ed662f2 -->
+<!-- Context: main@8fd9c87 -->
 # Repository Context
 
-Last updated: 2026-10-17
+Last updated: 2026-10-23
 
 ## Tech Stack
 
@@ -10,7 +10,8 @@ Last updated: 2026-10-17
 - **Package Manager**: pip
 - **Key Dependencies**:
   - `pytest`: test runner (installed globally, declared in `pyproject.toml` `[tool.pytest.ini_options]`)
-  - `pygame`: planned for phase F10 (UI), not yet a dependency
+  - `pygame-ce>=2.5`: GUI (declared in `pyproject.toml`; the classic `pygame` has no
+    wheel for Python 3.14, `pygame-ce` installs the same `pygame` module)
 
 ## What This Project Is
 
@@ -46,8 +47,12 @@ instinct/               Python package (phases F1+)
                         terrain_loader.py, object_loader.py, registry.py,
                         map_loader.py, creature_loader.py, pipeline.py (F9 done)
   sim/                  engine.py tick loop + cli.py terminal runner (F9 done)
-  ui/                   Pygame app (F10)
-tests/                  pytest suite (273 tests: 4 scaffold + 24 lexer + 36 parser + 35 semantic + 28 world + 24 loaders + 20 map loader + 11 creature loader + 6 pipeline + 16 engine + 25 interpreter + 27 actions + 17 cli)
+  ui/                   Pygame app (F10 done): constants.py (layout, colors, phases),
+                        state.py (mutable UIState, no pygame), session.py (actions over
+                        the CLI, no pygame), assets.py (fonts + tile cache),
+                        view.py (renderer + per-frame hotspots), controls.py
+                        (keyboard/mouse -> UIAction), app.py (60 fps loop) + __main__.py
+tests/                  pytest suite (332 tests: 4 scaffold + 24 lexer + 36 parser + 35 semantic + 28 world + 24 loaders + 20 map loader + 11 creature loader + 6 pipeline + 16 engine + 25 interpreter + 27 actions + 17 cli + 4 ui state + 18 ui session + 5 ui assets + 8 ui view + 14 ui controls + 10 ui app)
 terrains/ objects/ maps/ creatures/   runtime content dirs the app loads (spec §4.1), .gitkeep placeholders
 PLAN.md                 the project plan (source of truth for decisions)
 instinct.md             the specification (do not edit)
@@ -165,7 +170,13 @@ Two-stage front end → tree-walking interpreter (spec §5 forbids a bytecode VM
     move stopping rules, attack/consume targeting incl. `(0, 0)` own terrain and
     out-of-map no-ops, mid-tick kills counted, reproduce births/aborts, roar
     heard next tick, free say, validation strokes, and the four Anexo creatures
-    running 50 ticks in one world).
+    running 50 ticks in one world),
+  `test_ui_*.py` (59 tests over six files: state helpers, session actions over
+    the CLI incl. same-seed replay determinism, asset colors/caches, per-phase
+    render with hotspot assertions, synthetic keyboard/mouse events →
+    `UIAction`s, and headless app integration via `SDL_VIDEODRIVER=dummy`;
+    each file gates on `pytest.importorskip("pygame")` so the suite stays
+    green without the GUI dependency).
 - Tests assert **exact** `(line, message)` pairs, so every message change breaks the
   suite on purpose — that is the point: it makes message wording a reviewed decision.
 - Tests use inline `.ins` sources — the repo intentionally ships **no** example content
@@ -234,8 +245,26 @@ Two-stage front end → tree-walking interpreter (spec §5 forbids a bytecode VM
   `run()` loop drives those methods through input/print) +
   `tests/test_creature_loader.py` + `tests/test_pipeline.py` +
   `tests/test_cli.py`; 273 tests green.
-- **Next**: F10 (Pygame interface: grid display, click placement, play/pause/
-  step/speed controls, restart, logs, visible seed + repeat button).
+- **F10 done**: `ui/` package — `constants.py` (window/layout/factions/phases,
+  reuses `SPEEDS` from the CLI), `state.py` (mutable `UIState`: the only thing
+  the renderer reads; pygame-free), `session.py` (`Session` executes user
+  actions over the CLI facade — load, select map, place/remove via `cell()`,
+  start, step, pause, speed, reset, `repeat_seed` builds a fresh `CLI` with the
+  typed seed, transfers the loaded content, re-places the same creatures and
+  relaunches; pygame-free and fully unit-tested), `assets.py` (fonts rebuilt
+  per zoom step, tile surfaces cached), `view.py` (layered grid render with
+  culling, per-phase side panel, logs box, status bar, map thumbnails, and the
+  per-frame `hotspots` table — D30), `controls.py` (keyboard/mouse → frozen
+  `UIAction`; mutates only camera/hover/zoom/seed field), `app.py` (`App` wires
+  session+view+controls in a 60 fps loop, ticks on a speed timer;
+  `main()` entry; `python -m instinct.ui`), `pyproject.toml` gains
+  `pygame-ce>=2.5`; UI tests run headless (`SDL_VIDEODRIVER=dummy` +
+  `pytest.importorskip`) — `tests/test_ui_state.py`, `test_ui_session.py`,
+  `test_ui_assets.py`, `test_ui_view.py`, `test_ui_controls.py`,
+  `test_ui_app.py`; 332 tests green. One new session message, catalogued in
+  `error-messages.md` §7. Decisions D29–D31 in `PLAN.md`.
+- **Next**: F11 (content examples for the defense, extensions, extra polish;
+  manual window test of `python -m instinct.ui`).
 
 ## Additional Context Files
 

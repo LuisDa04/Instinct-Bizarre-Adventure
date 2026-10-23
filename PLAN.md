@@ -110,7 +110,7 @@ terrains/ objects/ maps/ creatures/   # dirs de carga que exige §4.1; contenido
 | **F7** ✅ | Las 6 acciones restantes + política de ictus (matar + log) |
 | **F8** ✅ | Loader `.map` + rechazo por char + colocación |
 | **F9** ✅ | Pipeline de carga + CLI |
-| **F10** | Interfaz Pygame: rejilla, colocación, play/pausa/paso/3 velocidades, reinicio, logs, **semilla visible + repetir** |
+| **F10** ✅ | Interfaz Pygame: rejilla, colocación, play/pausa/paso/3 velocidades, reinicio, logs, **semilla visible + repetir** |
 | **F11** | Pruebas, ejemplos JoJo, extensiones, defensa |
 
 ### Dependencias
@@ -124,7 +124,7 @@ todas ─▶ F11 (tests continuos)
 
 ### Estado
 
-F0–F9 implementadas con suite verde (273 tests, 2026-10-22). Siguiente: F10 (interfaz Pygame).
+F0–F10 implementadas con suite verde (332 tests, 2026-10-23). Siguiente: F11 (pruebas de UI en ventana real, ejemplos JoJo, extensiones, defensa).
 
 ---
 
@@ -186,5 +186,8 @@ F0–F9 implementadas con suite verde (273 tests, 2026-10-22). Siguiente: F10 (i
 | **D26** | Char desconocido | **`char desconocido 'X'` por cada celda ofensiva con su línea física** (nombre = línea 1); se recogen todos y el archivo se rechaza entero: `map is None ⇔ errors ≠ []`, igual que `TerrainResult` | §3.3 «dice cuál es el char y en qué línea»; §2.8 estilo pánico |
 | **D27** | Frontera parseo/colocación | **`load_map` valida y devuelve `GameMap` con prototipos ya resueltos** (autocontenido: luego nada puede fallar); **`build_world`** coloca con `place_terrain`/`place_object` existentes (clones, I3). **Cero cambios en `world/`** | GUIA_WORLD_LOADERS §7; §5 el loader llama al mundo, nunca al revés |
 | **D28** | Escaneo de `maps/` | **`load_maps(dir, registry)` espejando `load_definitions`**: orden alfabético, errores etiquetados con `.path` (`tag_errors` pública en `errors.py`), fallo parcial: solo los mapas válidos vuelven | §4.1.1 «la aplicación sigue funcionando»; D9 |
+| **D29** | Frontera de la interfaz | **La sesión reutiliza el CLI como fachada** (`select_map`, `place_creature`, `remove_creature`, `reset`): la UI nunca habla con el intérprete ni con el motor, y `UIState` (mutable, único) es lo único que el render lee | §5 mundo separado de la interfaz; el CLI ya monta motor + intérprete al elegir mapa |
+| **D30** | Posiciones clicables | **La vista registra los hotspots de cada frame** (`View.hotspots`) y los controles los consultan: botón dibujado y botón clicable son la misma tabla, sin posiciones duplicadas | una sola fuente de verdad evita el desincronizado clásico View/Controls |
+| **D31** | Repetir con semilla | **`repeat_seed` crea un `CLI` nuevo con la semilla del campo**, le transfiere el `LoadedWorld` ya cargado (sin releer disco), recoloca las mismas criaturas en las mismas celdas y arranca en marcha: la traza es idéntica en cada repetición | D6 semilla visible + botón repetir; I8 un solo RNG con semilla por simulación |
 
 **Pendientes menores (no bloqueantes):** textos/estética de la UI, cuántas extensiones JoJo se implementan (mínimo viable: ejemplos de `.ins`/`.te`/`.ob`/`.map` que usen solo la base).
