@@ -109,7 +109,7 @@ terrains/ objects/ maps/ creatures/   # dirs de carga que exige §4.1; contenido
 | **F6** ✅ | Intérprete (PC, 100 líneas, `wait`, variables) + percepciones §2.6 |
 | **F7** ✅ | Las 6 acciones restantes + política de ictus (matar + log) |
 | **F8** ✅ | Loader `.map` + rechazo por char + colocación |
-| **F9** | Pipeline de carga (§4.1.1) + CLI |
+| **F9** ✅ | Pipeline de carga + CLI |
 | **F10** | Interfaz Pygame: rejilla, colocación, play/pausa/paso/3 velocidades, reinicio, logs, **semilla visible + repetir** |
 | **F11** | Pruebas, ejemplos JoJo, extensiones, defensa |
 
@@ -124,7 +124,7 @@ todas ─▶ F11 (tests continuos)
 
 ### Estado
 
-F0–F8 implementadas con suite verde (239 tests, 2026-10-20). Siguiente: F9 (pipeline de carga §4.1.1 + CLI).
+F0–F9 implementadas con suite verde (273 tests, 2026-10-22). Siguiente: F10 (interfaz Pygame).
 
 ---
 

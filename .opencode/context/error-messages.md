@@ -230,6 +230,17 @@ de una vez, como el compilador.
 | `las filas deben medir 20 caracteres, no 18` | `load_map` | Fila disconforme con el ancho de la primera |
 | `char desconocido 'X'` | `load_map` | Ningún `.te`/`.ob` declara ese char (spec §3.3); uno por celda ofensiva |
 
+### Criaturas (`creature_loader.py`)
+
+El loader compila cada `.ins` con el front-end completo (scan → parse →
+resolve) y convierte todos los errores a `LoadError` con su línea: los
+mensajes son los mismos del scanner, parser y resolver (secciones 2–4), solo
+cambia el tipo de la excepción. Además:
+
+| Mensaje | Nace en | Cuándo |
+|---|---|---|
+| `la criatura 'Uruk' ya está declarada` | `load_creatures` | Dos `.ins` declaran la misma `creature Nombre`; se reporta en la línea 1 del segundo archivo |
+
 ---
 
 ## 6. Intérprete y acciones — `instinct/lang/` + `world/perceptions.py` (11 mensajes)

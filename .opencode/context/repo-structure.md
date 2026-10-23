@@ -43,11 +43,11 @@ instinct/               Python package (phases F1+)
   world/                entities.py (Entity/Terrain/WorldObject/Creature),
                         world.py (Cell grid, placement, movement, walkable), rng.py (seeded Rng)
   loaders/              errors.py (LoadError + tag_errors), definition.py (shared parser),
-                        terrain_loader.py, object_loader.py, registry.py (F4 done),
-                        map_loader.py (F8 done; .ins creature loading in F9)
-  sim/                  engine.py tick loop (F5; F7 adds kill() for mid-tick deaths) + cli.py terminal runner (F9)
+                        terrain_loader.py, object_loader.py, registry.py,
+                        map_loader.py, creature_loader.py, pipeline.py (F9 done)
+  sim/                  engine.py tick loop + cli.py terminal runner (F9 done)
   ui/                   Pygame app (F10)
-tests/                  pytest suite (239 tests: 4 scaffold + 24 lexer + 36 parser + 35 semantic + 28 world + 24 loaders + 20 map loader + 16 engine + 25 interpreter + 27 actions)
+tests/                  pytest suite (273 tests: 4 scaffold + 24 lexer + 36 parser + 35 semantic + 28 world + 24 loaders + 20 map loader + 11 creature loader + 6 pipeline + 16 engine + 25 interpreter + 27 actions + 17 cli)
 terrains/ objects/ maps/ creatures/   runtime content dirs the app loads (spec §4.1), .gitkeep placeholders
 PLAN.md                 the project plan (source of truth for decisions)
 instinct.md             the specification (do not edit)
@@ -222,9 +222,20 @@ Two-stage front end → tree-walking interpreter (spec §5 forbids a bytecode VM
   `load_maps` scans `maps/` with partial-failure tolerance like
   `load_definitions` (D28, §4.1.1), `tag_errors` now public in `errors.py` +
   `tests/test_map_loader.py`; 239 tests green. Decisions D24–D28 in `PLAN.md`.
-- **Next**: F9 (loading pipeline §4.1.1: chain `.te → .ob → .map → .ins`,
-  creature loading, terminal CLI over `Engine.step()/state()`). New messages
-  must be added to `error-messages.md` in the same commit.
+- **F9 done**: `loaders/creature_loader.py` (`load_creature` compiles a `.ins`
+  through scan→parse→resolve, converting every front-end error to `LoadError`
+  with its line; `load_creatures` scans the folder alphabetically with
+  path-tagged errors, partial-failure tolerance and duplicate-name rejection) +
+  `loaders/pipeline.py` (`load_all` chains `.te → .ob → .map → .ins` into a
+  frozen `LoadedWorld` with registry, maps by name, creatures by name, and all
+  load errors accumulated) + `sim/cli.py` (`CLI` with testable methods for
+  loading, map selection, creature placement/removal, tick stepping with
+  speed control, reset, grid rendering, and log collection; the interactive
+  `run()` loop drives those methods through input/print) +
+  `tests/test_creature_loader.py` + `tests/test_pipeline.py` +
+  `tests/test_cli.py`; 273 tests green.
+- **Next**: F10 (Pygame interface: grid display, click placement, play/pause/
+  step/speed controls, restart, logs, visible seed + repeat button).
 
 ## Additional Context Files
 
