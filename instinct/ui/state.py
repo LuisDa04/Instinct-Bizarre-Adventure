@@ -58,7 +58,7 @@ class UIState:
     hover_cell: tuple[int, int] | None = None
 
     @property
-    def speed_tps(self) -> int:
+    def speed_tps(self) -> float:
         """Ticks por segundo de la velocidad seleccionada."""
         return SPEEDS[self.speed_index]
 

@@ -81,7 +81,7 @@ class Controls:
                 return [UIAction("step")]
             if event.key == pygame.K_r:
                 return [UIAction("reset")]
-            if pygame.K_1 <= event.key <= pygame.K_4:
+            if pygame.K_1 <= event.key <= pygame.K_5:
                 return [UIAction("speed", str(event.key - pygame.K_1))]
         return []
 

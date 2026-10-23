@@ -149,8 +149,8 @@ def test_step_logs_ictus(tmp_path) -> None:
 
 def test_set_speed(tmp_path) -> None:
     cli = make_cli(tmp_path)
-    assert "1 tps" in cli.set_speed(0)
-    assert "30 tps" in cli.set_speed(3)
+    assert "0.5 tps" in cli.set_speed(0)
+    assert "30 tps" in cli.set_speed(4)
     assert "inválida" in cli.set_speed(9)
 
 
@@ -183,5 +183,5 @@ def test_recent_logs(tmp_path) -> None:
 
 
 def test_speeds_constant() -> None:
-    assert SPEEDS == (1, 5, 10, 30)
+    assert SPEEDS == (0.5, 1, 5, 10, 30)
     assert len(SPEEDS) >= 3

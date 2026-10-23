@@ -159,6 +159,8 @@ def test_toggle_pause_flips(tmp_path) -> None:
 def test_set_speed_ignores_out_of_range(tmp_path) -> None:
     session = make_session(tmp_path)
     session.set_speed(3)
+    assert session.state.speed_tps == 10
+    session.set_speed(4)
     assert session.state.speed_tps == 30
     session.set_speed(9)
     assert session.state.speed_tps == 30

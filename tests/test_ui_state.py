@@ -20,7 +20,8 @@ def test_defaults() -> None:
 
 def test_speed_tps_follows_index() -> None:
     state = UIState()
-    state.speed_index = 3
+    assert state.speed_tps == 0.5
+    state.speed_index = 4
     assert state.speed_tps == 30
 
 

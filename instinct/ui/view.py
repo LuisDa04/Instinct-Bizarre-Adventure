@@ -181,7 +181,7 @@ class View:
                 alive = sum(1 for _ in state.world.creatures())
             hud = [
                 f"Tick: {state.tick}",
-                f"Velocidad: {state.speed_tps} tps (teclas 1-4)",
+                f"Velocidad: {state.speed_tps} tps (teclas 1-5)",
                 f"Semilla: {state.seed}",
                 f"Vivas: {alive}",
             ]

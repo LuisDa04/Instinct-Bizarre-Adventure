@@ -11,8 +11,8 @@ from ..world.entities import Creature
 from ..world.world import World
 from .engine import Engine
 
-#: Velocidades disponibles en ticks por segundo, seleccionables con 1-4.
-SPEEDS: tuple[int, ...] = (1, 5, 10, 30)
+#: Velocidades disponibles en ticks por segundo, seleccionables con 1-5.
+SPEEDS: tuple[float, ...] = (0.5, 1, 5, 10, 30)
 
 
 class CLI:
@@ -184,7 +184,7 @@ class CLI:
         """Ajusta la velocidad a la posición indicada del catálogo.
 
         Args:
-            index: Posición 0-3 en SPEEDS (1, 5, 10 o 30 tps).
+            index: Posición 0-4 en SPEEDS (0.5, 1, 5, 10 o 30 tps).
 
         Returns:
             Mensaje confirmando la nueva velocidad.
@@ -316,7 +316,7 @@ class CLI:
     def _simulation_loop(self) -> None:
         """Fase de simulación: Enter=1 tick | run N | speed N | grid | logs | reset | quit."""
         print("\n=== Simulación ===")
-        print("Comandos: Enter=1 tick | run N | speed 1-4 | grid | logs | reset | quit")
+        print("Comandos: Enter=1 tick | run N | speed 1-5 | grid | logs | reset | quit")
         while True:
             raw = input("> ").strip()
             if raw == "quit" or raw == "q":

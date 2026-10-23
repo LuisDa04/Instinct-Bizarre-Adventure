@@ -81,6 +81,7 @@ def test_simulation_hotkeys(tmp_path) -> None:
     assert controls.handle(key_event(pygame.K_s), {}) == [UIAction("step")]
     assert controls.handle(key_event(pygame.K_r), {}) == [UIAction("reset")]
     assert controls.handle(key_event(pygame.K_3), {}) == [UIAction("speed", "2")]
+    assert controls.handle(key_event(pygame.K_5), {}) == [UIAction("speed", "4")]
 
 
 def test_speed_keys_do_nothing_outside_simulation(tmp_path) -> None:
@@ -110,7 +111,7 @@ def test_click_on_speed_button_cycles_with_index(tmp_path) -> None:
     controls = Controls(state)
     hotspots = {"speed": pygame.Rect(0, 0, 100, 30)}
     assert controls.handle(click((10, 10)), hotspots) == [UIAction("speed", "1")]
-    state.speed_index = 3
+    state.speed_index = 4
     assert controls.handle(click((10, 10)), hotspots) == [UIAction("speed", "0")]
 
 
