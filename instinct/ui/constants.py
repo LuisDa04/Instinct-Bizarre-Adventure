@@ -62,10 +62,14 @@ FACTION_DEFAULT = (180, 180, 200)
 # Colores de terreno y objeto por nombre; los desconocidos caen en gris.
 TERRAIN_COLORS: dict[str, tuple[int, int, int]] = {
     "grass": (34, 139, 34),
+    "morioh": (76, 164, 76),
+    "adoquin": (110, 105, 118),
 }
 TERRAIN_DEFAULT = (70, 70, 80)
 
 OBJECT_COLORS: dict[str, tuple[int, int, int]] = {
     "rock": (120, 120, 130),
+    "steamroller": (206, 162, 54),
+    "knives": (198, 198, 210),
 }
 OBJECT_DEFAULT = (160, 120, 60)

@@ -1,0 +1,31 @@
+creature Jotaro
+faction joestar
+health 100
+vision 6
+lifespan 300
+
+start:
+    if enemy_dist == 1 goto ora
+    if enemy_dist >= 0 goto chase
+    if health < 60 goto eat
+    if random < 50 goto wander
+    say("Yare yare daze...")
+    wait(1)
+    goto start
+
+eat:
+    consume(0, 0, 5, 10)
+    goto start
+
+wander:
+    move(random % 3 - 1, random % 3 - 1, 1)
+    goto start
+
+chase:
+    move((enemy_dx > 0) - (enemy_dx < 0), (enemy_dy > 0) - (enemy_dy < 0), 2)
+    goto start
+
+ora:
+    say("ORA ORA ORA!")
+    attack(enemy_dx, enemy_dy, 30)
+    goto start

@@ -1,0 +1,31 @@
+creature Kakyoin
+faction joestar
+health 80
+vision 8
+lifespan 250
+
+start:
+    if enemy_dist == 1 goto splash
+    if enemy_dist >= 0 goto aim
+    if health < 50 goto eat
+    if random < 50 goto wander
+    say("Rero rero rero...")
+    wait(2)
+    goto start
+
+eat:
+    consume(0, 0, 5, 10)
+    goto start
+
+wander:
+    move(random % 3 - 1, random % 3 - 1, 1)
+    goto start
+
+aim:
+    move((enemy_dx > 0) - (enemy_dx < 0), (enemy_dy > 0) - (enemy_dy < 0), 1)
+    goto start
+
+splash:
+    roar("EMERALD SPLASH!")
+    attack(enemy_dx, enemy_dy, 15)
+    goto start

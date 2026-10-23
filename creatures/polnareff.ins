@@ -1,0 +1,31 @@
+creature Polnareff
+faction joestar
+health 85
+vision 6
+lifespan 350
+
+start:
+    if enemy_dist == 1 goto chariot
+    if enemy_dist >= 0 goto charge
+    if health < 50 goto eat
+    if random < 50 goto wander
+    say("C'est la vie...")
+    wait(1)
+    goto start
+
+eat:
+    consume(0, 0, 5, 10)
+    goto start
+
+wander:
+    move(random % 3 - 1, random % 3 - 1, 1)
+    goto start
+
+charge:
+    move((enemy_dx > 0) - (enemy_dx < 0), (enemy_dy > 0) - (enemy_dy < 0), 3)
+    goto start
+
+chariot:
+    attack(enemy_dx, enemy_dy, 12)
+    attack(enemy_dx, enemy_dy, 12)
+    goto start

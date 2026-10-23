@@ -12,7 +12,11 @@ pytest.importorskip("pygame")
 import pygame  # noqa: E402
 
 from instinct.ui.assets import Assets  # noqa: E402
-from instinct.ui.constants import TERRAIN_DEFAULT  # noqa: E402
+from instinct.ui.constants import (  # noqa: E402
+    FACTION_DEFAULT,
+    OBJECT_DEFAULT,
+    TERRAIN_DEFAULT,
+)
 
 
 @pytest.fixture(autouse=True)
@@ -31,6 +35,16 @@ def test_terrain_color_known_and_unknown() -> None:
 def test_faction_color_ignores_case() -> None:
     assets = Assets()
     assert assets.faction_color("joestar") == assets.faction_color("Joestar")
+
+
+def test_jojo_palette_covers_shipped_content() -> None:
+    assets = Assets()
+    for name in ("Morioh", "Adoquin"):
+        assert assets.terrain_color(name) != TERRAIN_DEFAULT
+    for name in ("Steamroller", "Knives"):
+        assert assets.object_color(name) != OBJECT_DEFAULT
+    for faction in ("joestar", "dio", "hamon"):
+        assert assets.faction_color(faction) != FACTION_DEFAULT
 
 
 def test_tile_is_cached_and_resizes() -> None:

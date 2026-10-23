@@ -1,0 +1,43 @@
+creature Joseph
+faction joestar
+health 90
+vision 7
+lifespan 500
+
+start:
+    if health < 30 goto retreat
+    if enemy_dist == 1 goto overdrive
+    if enemy_dist >= 0 goto approach
+    if roars_near > 0 goto predict
+    if health < 60 goto eat
+    if random < 50 goto wander
+    say("Your next line is...")
+    wait(1)
+    goto start
+
+eat:
+    consume(0, 0, 5, 10)
+    goto start
+
+wander:
+    move(random % 3 - 1, random % 3 - 1, 1)
+    goto start
+
+approach:
+    move((enemy_dx > 0) - (enemy_dx < 0), (enemy_dy > 0) - (enemy_dy < 0), 1)
+    goto start
+
+overdrive:
+    say("Hamon Overdrive!")
+    consume(enemy_dx, enemy_dy, 15, 10)
+    goto start
+
+retreat:
+    say("OH NO OH NO OH NO!")
+    move(-((enemy_dx > 0) - (enemy_dx < 0)), -((enemy_dy > 0) - (enemy_dy < 0)), 2)
+    goto start
+
+predict:
+    say("Too predictable!")
+    wait(1)
+    goto start

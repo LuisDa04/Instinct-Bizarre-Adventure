@@ -1,0 +1,3 @@
+object Knives
+char k
+resource_max 150

@@ -1,0 +1,40 @@
+creature Dio
+faction dio
+health 120
+vision 7
+lifespan 400
+
+start:
+    if random < 5 goto warudo
+    if enemy_dist == 1 goto drink
+    if enemy_dist >= 0 goto hunt
+    if health > 100 goto multiply
+    if health < 60 goto eat
+    if random < 50 goto wander
+    wait(1)
+    goto start
+
+eat:
+    consume(0, 0, 5, 8)
+    goto start
+
+wander:
+    move(random % 3 - 1, random % 3 - 1, 1)
+    goto start
+
+hunt:
+    move((enemy_dx > 0) - (enemy_dx < 0), (enemy_dy > 0) - (enemy_dy < 0), 1)
+    goto start
+
+drink:
+    say("Kono Dio da!")
+    consume(enemy_dx, enemy_dy, 20, 15)
+    goto start
+
+warudo:
+    roar("ZA WARUDO!")
+    goto start
+
+multiply:
+    reproduce((x > 10) - (x < 10), (y > 6) - (y < 6), 30)
+    goto start
