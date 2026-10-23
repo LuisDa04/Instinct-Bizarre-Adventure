@@ -1,4 +1,4 @@
-<!-- Context: main@8fd9c87 -->
+<!-- Context: main@e22971f -->
 # Repository Context
 
 Last updated: 2026-10-23
@@ -52,8 +52,11 @@ instinct/               Python package (phases F1+)
                         the CLI, no pygame), assets.py (fonts + tile cache),
                         view.py (renderer + per-frame hotspots), controls.py
                         (keyboard/mouse -> UIAction), app.py (60 fps loop) + __main__.py
-tests/                  pytest suite (332 tests: 4 scaffold + 24 lexer + 36 parser + 35 semantic + 28 world + 24 loaders + 20 map loader + 11 creature loader + 6 pipeline + 16 engine + 25 interpreter + 27 actions + 17 cli + 4 ui state + 18 ui session + 5 ui assets + 8 ui view + 14 ui controls + 10 ui app)
-terrains/ objects/ maps/ creatures/   runtime content dirs the app loads (spec §4.1), .gitkeep placeholders
+tests/                  pytest suite (337 tests: 4 scaffold + 24 lexer + 36 parser + 35 semantic + 28 world + 24 loaders + 20 map loader + 11 creature loader + 6 pipeline + 16 engine + 25 interpreter + 27 actions + 17 cli + 4 ui state + 18 ui session + 6 ui assets + 8 ui view + 14 ui controls + 10 ui app + 4 content)
+terrains/ objects/ maps/ creatures/   runtime content dirs the app loads (spec §4.1);
+                        JoJo example content (D8): Morioh/Adoquin terrains,
+                        Steamroller/Knives objects, the Morioh Town map and the
+                        five Stand users (Jotaro, Kakyoin, Polnareff, Joseph, Dio)
 PLAN.md                 the project plan (source of truth for decisions)
 instinct.md             the specification (do not edit)
 GUIA_*.md               local study guides, one per phase (AST/parser, resolver,
@@ -176,7 +179,12 @@ Two-stage front end → tree-walking interpreter (spec §5 forbids a bytecode VM
     render with hotspot assertions, synthetic keyboard/mouse events →
     `UIAction`s, and headless app integration via `SDL_VIDEODRIVER=dummy`;
     each file gates on `pytest.importorskip("pygame")` so the suite stays
-    green without the GUI dependency).
+    green without the GUI dependency),
+  `test_content.py` (4 tests over the shipped JoJo content: zero load errors
+    across the four dirs, every map cell declared — Steamroller/Knives objects,
+    Morioh/Adoquin terrains —, a 100-tick battle via `Session` that keeps the
+    log alive with says and roars, and same-seed determinism of creatures
+    and messages).
 - Tests assert **exact** `(line, message)` pairs, so every message change breaks the
   suite on purpose — that is the point: it makes message wording a reviewed decision.
 - Tests use inline `.ins` sources — the repo intentionally ships **no** example content
@@ -263,8 +271,22 @@ Two-stage front end → tree-walking interpreter (spec §5 forbids a bytecode VM
   `test_ui_assets.py`, `test_ui_view.py`, `test_ui_controls.py`,
   `test_ui_app.py`; 332 tests green. One new session message, catalogued in
   `error-messages.md` §7. Decisions D29–D31 in `PLAN.md`.
-- **Next**: F11 (content examples for the defense, extensions, extra polish;
-  manual window test of `python -m instinct.ui`).
+- **JoJo content shipped**: the four content dirs now hold a playable example
+  (D8) — `terrains/` Morioh (lawn, `.`) + Adoquin (cobblestone, `,`),
+  `objects/` Steamroller (`#`, the road roller) + Knives (`k`, Dio's throwing
+  knives), `maps/` Morioh Town (20x12: cobblestone streets framing grass
+  blocks, the steamroller parked mid-street, knives in a lawn) and
+  `creatures/` five Stand users in the joestar vs dio war: Jotaro (ORA rush,
+  eats the lawn when wounded), Kakyoin (Emerald Splash roars, longest vision),
+  Polnareff (fastest charge, double rapier), Joseph (Hamon overdrive via
+  consume, flees under 30 hp, answers roars with predictions), Dio (drains
+  blood with consume, roars ZA WARUDO at random, multiplies above 100 hp).
+  All five wander via `random % 3 - 1` and heal from their own cell's reserve,
+  so the world keeps itself alive; same-seed runs replay identically
+  (`tests/test_content.py`, 4 tests; 337 total). UI palette covers every
+  shipped name and faction.
+- **Next**: F11 (optional language extensions, defense polish; manual window
+  test of `python -m instinct.ui`).
 
 ## Additional Context Files
 

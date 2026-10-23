@@ -133,7 +133,7 @@ F0–F10 implementadas con suite verde (332 tests, 2026-10-23). Siguiente: F11 (
 - **Front-end:** token/línea correctos; precedencia (`health < 20 and enemy_dist < 3`, `random % 3 - 1`, `(home_x > x) - (home_x < x)`); un test por cada error de compilación y de ejecución de §2.8 → mensaje y línea exactos.
 - **Mundo:** tras cada tick `−1` vida y `+1` edad; `age ≥ 0`; `reserve ≤ resource_max`; objetos con reserva 0 desaparecen; nunca objeto+criatura en la misma casilla; reproducción con edad 0 y sin variables heredadas.
 - **Determinismo:** misma semilla ⇒ traza idéntica de N ticks, incluido el orden de turnos.
-- **Ejemplos (§6):** los `.ins`/`.te`/`.ob`/`.map` que traigan los profesores cargan y corren 1000 ticks sin excepción; un `.ins` roto no impide cargar el resto. El repo no los incluye: los del Anexo están en `instinct.md` y se copian a los dirs de carga cuando haga falta.
+- **Ejemplos (§6):** los `.ins`/`.te`/`.ob`/`.map` que traigan los profesores cargan y corren 1000 ticks sin excepción; un `.ins` roto no impide cargar el resto. El repo incluye el contenido JoJo propio (D8) en los directorios de carga; los del Anexo están en `instinct.md` y se copian cuando haga falta.
 - **Comportamiento:** hobbit huye si `enemy_dist >= 0`; ent vuelve a `home_x/home_y`; enano mina solo `"Rock"`.
 - **UI:** logs con archivo+línea; colocar/varias/ quitar; imposible sobre objeto/criatura; pausa/paso/3 velocidades/ reinicio; sin edición durante simulación; simulación completa por terminal.
 - **Rendimiento:** 100 líneas/turno; 300+ criaturas a 30 tps sin bloquear.
@@ -190,4 +190,4 @@ F0–F10 implementadas con suite verde (332 tests, 2026-10-23). Siguiente: F11 (
 | **D30** | Posiciones clicables | **La vista registra los hotspots de cada frame** (`View.hotspots`) y los controles los consultan: botón dibujado y botón clicable son la misma tabla, sin posiciones duplicadas | una sola fuente de verdad evita el desincronizado clásico View/Controls |
 | **D31** | Repetir con semilla | **`repeat_seed` crea un `CLI` nuevo con la semilla del campo**, le transfiere el `LoadedWorld` ya cargado (sin releer disco), recoloca las mismas criaturas en las mismas celdas y arranca en marcha: la traza es idéntica en cada repetición | D6 semilla visible + botón repetir; I8 un solo RNG con semilla por simulación |
 
-**Pendientes menores (no bloqueantes):** textos/estética de la UI, cuántas extensiones JoJo se implementan (mínimo viable: ejemplos de `.ins`/`.te`/`.ob`/`.map` que usen solo la base).
+**Pendientes menores (no bloqueantes):** textos/estética de la UI, qué extensiones opcionales del lenguaje se añaden (el contenido JoJo que usa solo la base ya vive en los directorios de carga).
