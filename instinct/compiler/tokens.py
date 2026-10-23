@@ -47,7 +47,7 @@ class Token:
 
     Attributes:
         type: Tipo de token según el vocabulario del lenguaje.
-        lexeme: Texto original tal como apareció en el fuente.
+        lexeme: Texto original tal como apareció en la fuente.
         literal: Valor convertido (int o str) o None si no aplica.
         line: Línea (1-based) donde aparece el token.
     """

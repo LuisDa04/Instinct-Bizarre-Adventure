@@ -52,7 +52,7 @@ def sense(world: World, creature: Creature) -> WorldSense:
 
     Returns:
         WorldSense con la foto congelada; los empates se rompen por
-        (distancia, y, x) para que sean estables (decisión D4).
+        (distancia, y, x) para que el resultado sea siempre el mismo.
     """
     total_allies = 0
     total_enemies = 0
