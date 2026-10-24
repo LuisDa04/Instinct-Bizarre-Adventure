@@ -13,6 +13,16 @@ pytest.importorskip("pygame")
 import pygame  # noqa: E402
 
 from instinct.ui.assets import Assets  # noqa: E402
+from instinct.ui.constants import (  # noqa: E402
+    COLORS,
+    HEALTH_BAR_BACKGROUND,
+    HEALTH_BAR_BOTTOM_MARGIN,
+    HEALTH_BAR_FULL,
+    HEALTH_BAR_HEIGHT,
+    HEALTH_BAR_INSET,
+    MAX_TILE_SIZE,
+    MIN_TILE_SIZE,
+)
 from instinct.ui.session import Session  # noqa: E402
 from instinct.ui.view import View  # noqa: E402
 
@@ -139,3 +149,43 @@ def test_preview_is_cached(session: Session) -> None:
     first = view._map_preview(session.state, "Prueba")
     again = view._map_preview(session.state, "Prueba")
     assert first is again
+
+
+def test_health_bar_uses_ratio_colors() -> None:
+    screen = pygame.Surface((40, 40))
+    view = View(Assets())
+    rect = pygame.Rect(0, 0, 32, 32)
+    y = rect.bottom - HEALTH_BAR_HEIGHT - HEALTH_BAR_BOTTOM_MARGIN + HEALTH_BAR_HEIGHT // 2
+    x = rect.x + HEALTH_BAR_INSET + 1
+    cases = (
+        (HEALTH_BAR_FULL, COLORS["success"]),
+        (HEALTH_BAR_FULL + 100, COLORS["success"]),
+        (int(HEALTH_BAR_FULL * 0.4), COLORS["warning"]),
+        (int(HEALTH_BAR_FULL * 0.1), COLORS["danger"]),
+    )
+    for health, color in cases:
+        screen.fill((0, 0, 0))
+        view._draw_health_bar(screen, rect, health)
+        assert screen.get_at((x, y))[:3] == color
+
+
+def test_health_bar_empty_uses_background() -> None:
+    screen = pygame.Surface((40, 40))
+    view = View(Assets())
+    rect = pygame.Rect(0, 0, 32, 32)
+    y = rect.bottom - HEALTH_BAR_HEIGHT - HEALTH_BAR_BOTTOM_MARGIN + HEALTH_BAR_HEIGHT // 2
+    for health in (0, -10):
+        screen.fill((0, 0, 0))
+        view._draw_health_bar(screen, rect, health)
+        assert screen.get_at((rect.x + HEALTH_BAR_INSET + 1, y))[:3] == HEALTH_BAR_BACKGROUND
+
+
+def test_render_grid_at_zoom_limits(session: Session) -> None:
+    session.select_map("Prueba")
+    session.pick_species("Uruk")
+    session.cell(0, 0)
+    session.start()
+    for size in (MIN_TILE_SIZE, MAX_TILE_SIZE):
+        session.state.tile_size = size
+        view = render(session.state)
+        assert "grid" in view.hotspots

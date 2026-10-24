@@ -21,6 +21,7 @@ BASE_TILE_SIZE = 32
 MIN_TILE_SIZE = 16
 MAX_TILE_SIZE = 64
 ZOOM_STEP = 4
+CHAR_HIDE_ZOOM = 24
 
 # Layout de paneles (píxeles)
 PANEL_WIDTH = 300
@@ -51,6 +52,15 @@ COLORS: dict[str, tuple[int, int, int]] = {
     "log_system": (180, 180, 200),
 }
 
+# Barra de vida de las criaturas
+HEALTH_BAR_FULL = 100
+HEALTH_BAR_HEIGHT = 3
+HEALTH_BAR_INSET = 3
+HEALTH_BAR_BOTTOM_MARGIN = 2
+HEALTH_BAR_BACKGROUND = (30, 30, 40)
+HEALTH_BAR_GOOD_RATIO = 0.5
+HEALTH_BAR_WARNING_RATIO = 0.25
+
 # Un color por facción para distinguir criaturas de un vistazo.
 FACTION_COLORS: dict[str, tuple[int, int, int]] = {
     "joestar": (0, 200, 255),
@@ -73,3 +83,9 @@ OBJECT_COLORS: dict[str, tuple[int, int, int]] = {
     "knives": (198, 198, 210),
 }
 OBJECT_DEFAULT = (160, 120, 60)
+
+# Nombres con arte procedural propio; los desconocidos conservan su char.
+GRASS_TERRAINS = frozenset({"grass", "morioh"})
+COBBLESTONE_TERRAINS = frozenset({"adoquin"})
+TERRAIN_ART = GRASS_TERRAINS | COBBLESTONE_TERRAINS
+OBJECT_ART = frozenset({"steamroller", "knives"})

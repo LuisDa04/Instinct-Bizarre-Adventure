@@ -71,3 +71,44 @@ def test_fonts_exist_after_zoom() -> None:
     assets.ensure_tile_size(64)
     assert assets.font_mono.size("#") != (0, 0)
     assert assets.font_ui.size("texto") != (0, 0)
+
+
+def test_terrain_tile_is_cached_case_insensitive() -> None:
+    assets = Assets(tile_size=32)
+    first = assets.terrain_tile("Morioh", 1)
+    assert assets.terrain_tile("morioh", 1) is first
+    assert first.get_size() == (32, 32)
+
+
+def test_terrain_tile_rebuilds_after_zoom() -> None:
+    assets = Assets(tile_size=32)
+    first = assets.terrain_tile("Adoquin", 2)
+    assets.ensure_tile_size(48)
+    big = assets.terrain_tile("Adoquin", 2)
+    assert big is not first
+    assert big.get_size() == (48, 48)
+
+
+def test_procedural_art_predicates() -> None:
+    assets = Assets()
+    assert assets.has_terrain_art("Morioh")
+    assert assets.has_terrain_art("GRASS")
+    assert not assets.has_terrain_art("Volcano")
+    assert assets.has_object_art("Steamroller")
+    assert assets.has_object_art("knives")
+    assert not assets.has_object_art("Rock")
+
+
+def test_object_tile_is_transparent_and_cached() -> None:
+    assets = Assets()
+    first = assets.object_tile("Steamroller")
+    assert assets.object_tile("steamroller") is first
+    assert first.get_at((0, 0)).a == 0
+    assert assets.object_tile("Rock").get_at((0, 0)).a == 0
+
+
+def test_creature_token_is_transparent_and_cached() -> None:
+    assets = Assets()
+    first = assets.creature_token("joestar")
+    assert assets.creature_token("Joestar") is first
+    assert first.get_at((0, 0)).a == 0

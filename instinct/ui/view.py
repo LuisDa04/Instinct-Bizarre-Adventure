@@ -5,7 +5,15 @@ import pygame
 
 from .assets import Assets
 from .constants import (
+    CHAR_HIDE_ZOOM,
     COLORS,
+    HEALTH_BAR_BACKGROUND,
+    HEALTH_BAR_BOTTOM_MARGIN,
+    HEALTH_BAR_FULL,
+    HEALTH_BAR_GOOD_RATIO,
+    HEALTH_BAR_HEIGHT,
+    HEALTH_BAR_INSET,
+    HEALTH_BAR_WARNING_RATIO,
     LOG_HEIGHT,
     PANEL_WIDTH,
     PHASE_LOADING,
@@ -96,17 +104,25 @@ class View:
                 cell = pygame.Rect(origin_x + x * tile_size, origin_y + y * tile_size, tile_size, tile_size)
                 terrain = world.terrain_at(x, y)
                 if terrain is not None:
-                    screen.blit(self.assets.tile(self.assets.terrain_color(terrain.name)), cell)
-                    if terrain.char != " ":
+                    screen.blit(self.assets.terrain_tile(terrain.name, (x + y) % 4), cell)
+                    if terrain.char != " " and (
+                        tile_size < CHAR_HIDE_ZOOM
+                        or not self.assets.has_terrain_art(terrain.name)
+                    ):
                         self._blit_char(screen, cell, terrain.char, (235, 235, 235))
                 obj = world.object_at(x, y)
                 if obj is not None:
-                    screen.blit(self.assets.tile(self.assets.object_color(obj.name)), cell)
-                    self._blit_char(screen, cell, obj.char, (20, 20, 25))
+                    screen.blit(self.assets.object_tile(obj.name), cell)
+                    if (
+                        tile_size < CHAR_HIDE_ZOOM
+                        or not self.assets.has_object_art(obj.name)
+                    ):
+                        self._blit_char(screen, cell, obj.char, (20, 20, 25))
                 creature = world.creature_at(x, y)
                 if creature is not None:
-                    screen.blit(self.assets.tile(self.assets.faction_color(creature.faction)), cell)
+                    screen.blit(self.assets.creature_token(creature.faction), cell)
                     self._blit_char(screen, cell, creature.name[0].upper(), (15, 15, 20))
+                    self._draw_health_bar(screen, cell, creature.health)
                 pygame.draw.rect(screen, COLORS["grid_line"], cell, 1)
                 if state.hover_cell == (x, y):
                     screen.blit(hover, cell)
@@ -118,6 +134,30 @@ class View:
         """Centra un carácter en la celda con la fuente de rejilla."""
         text = self.assets.font_mono.render(char, True, color)
         screen.blit(text, text.get_rect(center=rect.center))
+
+    def _draw_health_bar(self, screen: pygame.Surface, rect: pygame.Rect, health: int) -> None:
+        """Dibuja la barra de vida bajo la criatura; 100 cuenta como llena.
+
+        La vida real no tiene tope: por encima de 100 la barra simplemente
+        se queda llena, y los colores marcan el tramo (verde, ámbar, rojo).
+        """
+        bar = pygame.Rect(
+            rect.x + HEALTH_BAR_INSET,
+            rect.bottom - HEALTH_BAR_HEIGHT - HEALTH_BAR_BOTTOM_MARGIN,
+            rect.width - HEALTH_BAR_INSET * 2,
+            HEALTH_BAR_HEIGHT,
+        )
+        pygame.draw.rect(screen, HEALTH_BAR_BACKGROUND, bar)
+        ratio = min(1.0, health / HEALTH_BAR_FULL)
+        if ratio > 0:
+            if ratio > HEALTH_BAR_GOOD_RATIO:
+                color = COLORS["success"]
+            elif ratio > HEALTH_BAR_WARNING_RATIO:
+                color = COLORS["warning"]
+            else:
+                color = COLORS["danger"]
+            fill = pygame.Rect(bar.x, bar.y, max(1, int(bar.width * ratio)), bar.height)
+            pygame.draw.rect(screen, color, fill)
 
     def _alpha_tile(self, color: tuple[int, int, int, int]) -> pygame.Surface:
         """Crea la superficie translúcida del resaltado de hover."""

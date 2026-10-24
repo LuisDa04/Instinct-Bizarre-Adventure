@@ -1,7 +1,7 @@
 <!-- Context: main@e22971f -->
 # Repository Context
 
-Last updated: 2026-10-23
+Last updated: 2026-10-24
 
 ## Tech Stack
 
@@ -47,12 +47,13 @@ instinct/               Python package (phases F1+)
                         terrain_loader.py, object_loader.py, registry.py,
                         map_loader.py, creature_loader.py, pipeline.py (F9 done)
   sim/                  engine.py tick loop + cli.py terminal runner (F9 done)
-  ui/                   Pygame app (F10 done): constants.py (layout, colors, phases),
-                        state.py (mutable UIState, no pygame), session.py (actions over
-                        the CLI, no pygame), assets.py (fonts + tile cache),
-                        view.py (renderer + per-frame hotspots), controls.py
-                        (keyboard/mouse -> UIAction), app.py (60 fps loop) + __main__.py
-tests/                  pytest suite (337 tests: 4 scaffold + 24 lexer + 36 parser + 35 semantic + 28 world + 24 loaders + 20 map loader + 11 creature loader + 6 pipeline + 16 engine + 25 interpreter + 27 actions + 17 cli + 4 ui state + 18 ui session + 6 ui assets + 8 ui view + 14 ui controls + 10 ui app + 4 content)
+   ui/                   Pygame app (F10 done): constants.py (layout, colors, phases,
+                         zoom char hide, health bar, procedural art sets),
+                         state.py (mutable UIState, no pygame), session.py (actions over
+                         the CLI, no pygame), assets.py (fonts + cached procedural tiles/icons/tokens, case-insensitive),
+                         view.py (renderer + per-frame hotspots, health bar, char visibility by art),
+                         controls.py (keyboard/mouse -> UIAction), app.py (60 fps loop) + __main__.py
+tests/                  pytest suite (347 tests: 4 scaffold + 24 lexer + 36 parser + 35 semantic + 28 world + 24 loaders + 20 map loader + 11 creature loader + 6 pipeline + 16 engine + 25 interpreter + 27 actions + 17 cli + 4 ui state + 18 ui session + 11 ui assets + 11 ui view + 15 ui controls + 11 ui app + 4 content)
 terrains/ objects/ maps/ creatures/   runtime content dirs the app loads (spec §4.1);
                         JoJo example content (D8): Morioh/Adoquin terrains,
                         Steamroller/Knives objects, the Morioh Town map and the
@@ -254,23 +255,25 @@ Two-stage front end → tree-walking interpreter (spec §5 forbids a bytecode VM
   `tests/test_creature_loader.py` + `tests/test_pipeline.py` +
   `tests/test_cli.py`; 273 tests green.
 - **F10 done**: `ui/` package — `constants.py` (window/layout/factions/phases,
-  reuses `SPEEDS` from the CLI), `state.py` (mutable `UIState`: the only thing
-  the renderer reads; pygame-free), `session.py` (`Session` executes user
-  actions over the CLI facade — load, select map, place/remove via `cell()`,
-  start, step, pause, speed, reset, `repeat_seed` builds a fresh `CLI` with the
-  typed seed, transfers the loaded content, re-places the same creatures and
-  relaunches; pygame-free and fully unit-tested), `assets.py` (fonts rebuilt
-  per zoom step, tile surfaces cached), `view.py` (layered grid render with
-  culling, per-phase side panel, logs box, status bar, map thumbnails, and the
-  per-frame `hotspots` table — D30), `controls.py` (keyboard/mouse → frozen
-  `UIAction`; mutates only camera/hover/zoom/seed field), `app.py` (`App` wires
-  session+view+controls in a 60 fps loop, ticks on a speed timer;
-  `main()` entry; `python -m instinct.ui`), `pyproject.toml` gains
-  `pygame-ce>=2.5`; UI tests run headless (`SDL_VIDEODRIVER=dummy` +
-  `pytest.importorskip`) — `tests/test_ui_state.py`, `test_ui_session.py`,
-  `test_ui_assets.py`, `test_ui_view.py`, `test_ui_controls.py`,
-  `test_ui_app.py`; 332 tests green. One new session message, catalogued in
-  `error-messages.md` §7. Decisions D29–D31 in `PLAN.md`.
+                         reuses `SPEEDS` from the CLI), `state.py` (mutable `UIState`: the only thing
+                         the renderer reads; pygame-free), `session.py` (`Session` executes user
+                         actions over the CLI facade — load, select map, place/remove via `cell()`,
+                         start, step, pause, speed, reset, `repeat_seed` builds a fresh `CLI` with the
+                         typed seed, transfers the loaded content, re-places the same creatures and
+                         relaunches; pygame-free and fully unit-tested), `assets.py` (fonts rebuilt
+                         per zoom step, cached procedural terrain/object tiles and faction tokens with
+                         case-insensitive keys, alpha icons/tokens), `view.py` (layered grid render with
+                         culling, per-phase side panel, logs box, status bar, map thumbnails, health
+                         bar, per-frame `hotspots` table — D30; hides chars only when procedural art
+                         exists or zoom >= threshold), `controls.py` (keyboard/mouse → frozen
+                         `UIAction`; mutates only camera/hover/zoom/seed field), `app.py` (`App` wires
+                         session+view+controls in a 60 fps loop, ticks on a speed timer;
+                         `main()` entry; `python -m instinct.ui`), `pyproject.toml` gains
+                         `pygame-ce>=2.5`; UI tests run headless (`SDL_VIDEODRIVER=dummy` +
+                         `pytest.importorskip`) — `tests/test_ui_state.py`, `test_ui_session.py`,
+                         `test_ui_assets.py`, `test_ui_view.py`, `test_ui_controls.py`,
+                         `test_ui_app.py`; 347 tests green. One new session message, catalogued in
+                         `error-messages.md` §7. Decisions D29–D31 in `PLAN.md`.
 - **JoJo content shipped**: the four content dirs now hold a playable example
   (D8) — `terrains/` Morioh (lawn, `.`) + Adoquin (cobblestone, `,`),
   `objects/` Steamroller (`#`, the road roller) + Knives (`k`, Dio's throwing
