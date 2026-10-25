@@ -284,7 +284,8 @@ class View:
         pygame.draw.rect(screen, COLORS["panel_bg"], rect)
         pygame.draw.line(screen, COLORS["panel_border"], (rect.x, rect.y), (rect.right, rect.y), 2)
         y = rect.y + 6
-        for line in state.messages[-(rect.height // 18):]:
+        line_height = self.assets.font_log.get_linesize()
+        for line in state.messages[-(rect.height // line_height):]:
             color = COLORS["log_system"]
             if "dice:" in line:
                 color = COLORS["log_say"]
@@ -292,9 +293,11 @@ class View:
                 color = COLORS["log_roar"]
             elif "línea" in line:
                 color = COLORS["log_ictus"]
-            text = self.assets.font_ui.render(self._fit(line, rect.width - 16), True, color)
+            text = self.assets.font_log.render(
+                self._fit(line, rect.width - 16, self.assets.font_log), True, color
+            )
             screen.blit(text, (rect.x + 8, y))
-            y += 18
+            y += line_height
 
     def _render_status(self, screen: pygame.Surface, rect: pygame.Rect, state: UIState) -> None:
         """Barra inferior con fase, mapa, medidas, zoom y celda bajo el ratón."""
@@ -338,9 +341,9 @@ class View:
         screen.blit(text, text.get_rect(center=rect.center))
         self.hotspots[key] = rect
 
-    def _fit(self, text: str, width: int) -> str:
+    def _fit(self, text: str, width: int, font: pygame.font.Font) -> str:
         """Recorta el texto con puntos suspensivos hasta caber en el ancho."""
-        while text and self.assets.font_ui.size(text)[0] > width:
+        while text and font.size(text)[0] > width:
             text = text[:-1]
         return text or ""
 

@@ -50,13 +50,14 @@ class Assets:
         self._build_fonts()
 
     def _build_fonts(self) -> None:
-        """Crea la fuente de rejilla acorde al tamaño de celda y la fija de paneles."""
+        """Crea la fuente de rejilla acorde al tamaño de celda, la de paneles y la del historial."""
         self.font_mono = pygame.font.SysFont(
             "consolas,dejavusansmono,couriernew,monospace",
             max(10, self.tile_size - 8),
             bold=True,
         )
         self.font_ui = pygame.font.SysFont("arial,helvetica,sans", 14)
+        self.font_log = pygame.font.SysFont("arial,helvetica,sans", 28)
 
     def ensure_tile_size(self, size: int) -> None:
         """Adapta las fuentes y vacía las cachés si cambia el tamaño de celda."""
