@@ -225,3 +225,8 @@ GUIA_INTERPRETE_F6.md
 GUIA_ACCIONES_F7.md
 GUIA_PIPELINE_F9.md
 *.pdf
+
+# Documentos y contexto locales (no se versionan)
+.opencode/
+instinct.md
+PLAN.md
