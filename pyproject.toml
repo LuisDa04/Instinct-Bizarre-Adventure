@@ -7,3 +7,6 @@ dependencies = ["pygame-ce>=2.5"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = [
+    "slow: tests that are slow (e.g. 1000 ticks, performance benchmarks)",
+]
