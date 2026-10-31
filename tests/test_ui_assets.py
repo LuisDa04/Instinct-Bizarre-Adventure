@@ -47,6 +47,33 @@ def test_jojo_palette_covers_shipped_content() -> None:
         assert assets.faction_color(faction) != FACTION_DEFAULT
 
 
+def test_terrain_tile_cached_per_variant_and_resized() -> None:
+    assets = Assets(tile_size=32)
+    first = assets.terrain_tile("Morioh", 0)
+    assert assets.terrain_tile("Morioh", 0) is first
+    assert assets.terrain_tile("Morioh", 1) is not first
+    assert first.get_size() == (32, 32)
+    assets.ensure_tile_size(64)
+    big = assets.terrain_tile("Morioh", 0)
+    assert big.get_size() == (64, 64)
+    assert big is not first
+
+
+def test_object_and_creature_icons_are_transparent() -> None:
+    assets = Assets(tile_size=32)
+    roller = assets.object_tile("Steamroller")
+    assert roller.get_at((0, 0)).a == 0
+    token = assets.creature_token("joestar")
+    assert token.get_at((0, 0)).a == 0
+    assert assets.creature_token("joestar") is token
+
+
+def test_tiles_differ_between_names() -> None:
+    assets = Assets(tile_size=32)
+    assert assets.object_tile("Steamroller") is not assets.object_tile("Knives")
+    assert assets.terrain_tile("Adoquin", 0) is not assets.terrain_tile("Morioh", 0)
+
+
 def test_tile_is_cached_and_resizes() -> None:
     assets = Assets(tile_size=32)
     first = assets.tile((255, 0, 0))
