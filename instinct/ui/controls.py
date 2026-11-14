@@ -15,7 +15,10 @@ from .constants import (
 from .state import UIState
 
 #: Acciones de un solo nombre; el resto lleva dato en `value`.
-SIMPLE_ACTIONS = frozenset({"start", "pause", "step", "reset", "repeat", "quit"})
+SIMPLE_ACTIONS = frozenset({
+    "start", "pause", "step", "reset", "repeat", "quit",
+    "editor_save", "editor_reload", "editor_new", "editor_open", "toggle_editor",
+})
 
 
 @dataclass(frozen=True)
@@ -74,6 +77,20 @@ class Controls:
             return self._seed_key(event)
         if event.key in (pygame.K_ESCAPE, pygame.K_q):
             return [UIAction("quit")]
+
+        # Atajos del editor (funcionan en cualquier fase)
+        mods = pygame.key.get_mods()
+        if event.key == pygame.K_F4:
+            return [UIAction("toggle_editor")]
+        if event.key == pygame.K_s and mods & pygame.KMOD_CTRL:
+            return [UIAction("editor_save")]
+        if event.key == pygame.K_r and mods & pygame.KMOD_CTRL:
+            return [UIAction("editor_reload")]
+        if event.key == pygame.K_n and mods & pygame.KMOD_CTRL:
+            return [UIAction("editor_new")]
+        if event.key == pygame.K_o and mods & pygame.KMOD_CTRL:
+            return [UIAction("editor_open")]
+
         if state.in_simulation():
             if event.key == pygame.K_SPACE:
                 return [UIAction("pause")]

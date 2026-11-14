@@ -1,4 +1,9 @@
-"""Aplicación Pygame: une sesión, render y entrada en un bucle a 60 fps."""
+"""Aplicación Pygame: une sesión, render y entrada en un bucle a 60 fps.
+
+Integra un editor de código PyQt6 (ventana separada, F4) que comparte la
+misma sesión con el motor de simulación. El editor permite escribir .ins,
+validar en tiempo real y recargar criaturas en caliente sin reiniciar.
+"""
 from __future__ import annotations
 
 import time
@@ -18,6 +23,18 @@ from .constants import (
 from .controls import Controls, UIAction
 from .session import Session
 from .view import View
+
+# Editor opcional (requiere PyQt6 instalado)
+try:
+    from PyQt6.QtWidgets import QApplication, QMainWindow
+    from instinct.ui.editor import EditorWidget
+
+    _HAS_QT = True
+except ImportError:
+    QApplication = None  # type: ignore
+    QMainWindow = None  # type: ignore
+    EditorWidget = None  # type: ignore
+    _HAS_QT = False
 
 
 class App:
@@ -46,19 +63,45 @@ class App:
         self._running = False
         self._last_step = 0.0
 
+        # Editor PyQt6 (ventana separada, compartida sesión)
+        self._editor_window: Optional[QMainWindow] = None
+        self._editor_widget: Optional[EditorWidget] = None
+        if _HAS_QT:
+            self._qt_app = QApplication.instance() or QApplication([])
+            self._editor_widget = EditorWidget(self.session)
+            self._editor_window = QMainWindow()
+            self._editor_window.setCentralWidget(self._editor_widget)
+            self._editor_window.setWindowTitle("Instinct - Editor de código")
+            self._editor_window.resize(600, 700)
+            self._editor_window.hide()  # Inicia oculta, se abre con F4
+
     def run(self) -> None:
         """Ejecuta el bucle principal hasta que el usuario salga."""
         self.session.load()
         self._running = True
         self._last_step = time.monotonic()
         while self._running:
+            # 1. Eventos Pygame
             for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    self._running = False
+                    continue
+
+                # Procesar eventos Qt si están disponibles (procesar cola de Qt)
+                if _HAS_QT and self._qt_app is not None:
+                    self._qt_app.processEvents()
+
                 for action in self.controls.handle(event, self.view.hotspots):
                     self._execute(action)
+
+            # 2. Actualización simulación (desacoplada del render)
             self._advance_simulation()
+
+            # 3. Render
             self.view.render(self.screen, self.session.state)
             pygame.display.flip()
             self.clock.tick(TARGET_FPS)
+
         pygame.quit()
 
     # ------------------------------------------------------------------
@@ -107,6 +150,17 @@ class App:
             session.reset()
         elif action.type == "repeat":
             session.repeat_seed()
+        # ----- Acciones del editor -----
+        elif action.type == "editor_save":
+            self._editor_save_current()
+        elif action.type == "editor_reload":
+            self._editor_reload_current()
+        elif action.type == "editor_new":
+            self._editor_new_tab()
+        elif action.type == "editor_open":
+            self._editor_open_file()
+        elif action.type == "toggle_editor":
+            self._toggle_editor_window()
 
     def _center_camera(self) -> None:
         """Centra la rejilla del mapa actual en el área visible."""
@@ -118,6 +172,40 @@ class App:
         grid_h = height - LOG_HEIGHT - STATUS_BAR_HEIGHT
         state.camera_x = (grid_w - state.world.width * state.tile_size) // 2
         state.camera_y = (grid_h - state.world.height * state.tile_size) // 2
+
+    # ------------------------------------------------------------------
+    # Acciones del editor
+    # ------------------------------------------------------------------
+
+    def _editor_save_current(self) -> None:
+        """Guarda la pestaña actual del editor."""
+        if self._editor_widget is not None:
+            self._editor_widget.save_current()
+
+    def _editor_reload_current(self) -> None:
+        """Recarga la criatura de la pestaña actual del editor."""
+        if self._editor_widget is not None:
+            self._editor_widget.hot_reload_current()
+
+    def _editor_new_tab(self) -> None:
+        """Crea una nueva pestaña en el editor."""
+        if self._editor_widget is not None:
+            self._editor_widget.new_tab()
+
+    def _editor_open_file(self) -> None:
+        """Abre un archivo .ins en el editor."""
+        if self._editor_widget is not None:
+            self._editor_widget.open_file()
+
+    def _toggle_editor_window(self) -> None:
+        """Muestra u oculta la ventana del editor."""
+        if self._editor_window is not None:
+            if self._editor_window.isVisible():
+                self._editor_window.hide()
+            else:
+                self._editor_window.show()
+                self._editor_window.raise_()
+                self._editor_window.activateWindow()
 
 
 def main() -> None:

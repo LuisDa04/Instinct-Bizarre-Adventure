@@ -89,3 +89,30 @@ GRASS_TERRAINS = frozenset({"grass", "morioh"})
 COBBLESTONE_TERRAINS = frozenset({"adoquin"})
 TERRAIN_ART = GRASS_TERRAINS | COBBLESTONE_TERRAINS
 OBJECT_ART = frozenset({"steamroller", "knives"})
+
+# Tema del editor de código (usado por InstinctHighlighter)
+EDITOR_THEME: dict[str, tuple[int, int, int]] = {
+    "bg": (30, 30, 40),
+    "fg": (220, 220, 230),
+    "selection": (0, 120, 215, 100),
+    "line_numbers_bg": (25, 25, 35),
+    "line_numbers_fg": (120, 120, 140),
+    "current_line": (40, 40, 55),
+    "comment": (100, 100, 120),
+    "string": (120, 180, 120),
+    "number": (120, 160, 220),
+    "keyword": (190, 120, 255),
+    "action": (120, 200, 255),
+    "perception": (80, 200, 220),
+    "constant": (255, 180, 80),
+    "function": (220, 120, 220),
+    "label": (200, 200, 100),
+    "variable": (220, 220, 230),
+    "error_line": (255, 60, 60, 50),
+    "warning_line": (255, 200, 60, 50),
+    "error_underline": (255, 60, 60),
+    "warning_underline": (255, 200, 60),
+}
+
+EDITOR_FONT_FAMILY = "Consolas, DejaVu Sans Mono, Courier New, monospace"
+EDITOR_FONT_SIZE = 11
