@@ -150,7 +150,7 @@ python -m pytest tests/test_interpreter.py -v
 python -m pytest tests/test_ui_*.py -v
 ```
 
-**Cobertura actual**: 370 tests (4 skipped por requerir PyQt6).  
+**Cobertura actual**: 370 tests.  
 Categorías: scanner, parser, resolver, world, loaders, map_loader, pipeline, engine, interpreter, actions, cli, ui (state, session, assets, view, controls, app).
 
 ---
@@ -171,7 +171,3 @@ El repo incluye ejemplos JoJo en `tests/acceptance/fixtures/` para tests de acep
 ## 📜 Licencia
 
 MIT License — ver [LICENSE](LICENSE) si existe.
-
----
-
-> **Nota para la defensa**: El código está escrito para ser explicado y reescrito en vivo. Parser Pratt, intérprete con PC persistente, actions polimórficas, resolvers de percepciones por dict, pipeline tolerante a fallos, y hot-reload sin reiniciar simulación son los puntos clave demostrables.
