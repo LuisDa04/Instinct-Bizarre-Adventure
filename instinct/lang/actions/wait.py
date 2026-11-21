@@ -22,15 +22,15 @@ class Wait(Action):
         if not isinstance(args[0], int):
             raise ExecutionError(line, "la acción 'wait' espera un número")
 
-    def apply(self, ctx: ActionContext, args: list[int | str]) -> None:
+    def apply(self, ctx: ActionContext, args: list[int | str], line: int) -> None:
         """Programa los `n - 1` turnos siguientes sin ejecutar nada.
 
         Args:
-            ctx: Contexto con la criatura que duerme.
+            ctx: Mundo, motor y criatura que duerme.
             args: `[n]` ya validado como entero.
+            line: Línea (1-based) de la llamada para el mensaje de error.
         """
         n = args[0]
         if not isinstance(n, int):
-            from instinct.lang.errors import ExecutionError
             raise ExecutionError(line, "la acción 'wait' espera un número")
         ctx.creature.wait_remaining = max(1, n) - 1

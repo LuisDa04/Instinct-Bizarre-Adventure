@@ -24,7 +24,7 @@ class Reproduce(Action):
         self._require_direction(args, 1, line)
         self._require_number(args, 2, line)
 
-    def apply(self, ctx: ActionContext, args: list[int | str]) -> None:
+    def apply(self, ctx: ActionContext, args: list[int | str], line: int) -> None:
         """Nace una cría si la casilla está libre y la madre puede pagarla.
 
         Requiere dirección real (distancia 1), casilla con solo terreno,

@@ -6,13 +6,11 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 from .tokens import TokenType
+from instinct.lang.values import truthy
 
 if TYPE_CHECKING:
     from instinct.compiler.execution_context import ExecutionContext
     from instinct.lang.actions import Action
-    from instinct.compiler.tokens import TokenType
-
-from instinct.lang.values import truthy
 
 
 @dataclass(frozen=True)
@@ -265,8 +263,8 @@ class ActionCall(Stmt):
                 log=ctx.log,
             ),
             args,
+            self.line,
         )
-        from instinct.lang.actions import Action
         return action
 
 

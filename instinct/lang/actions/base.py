@@ -79,10 +79,11 @@ class Action(ABC):
         """
 
     @abstractmethod
-    def apply(self, ctx: ActionContext, args: list[int | str]) -> None:
+    def apply(self, ctx: ActionContext, args: list[int | str], line: int) -> None:
         """Aplica el efecto de la acción sobre el mundo.
 
         Args:
             ctx: Mundo, motor, criatura y log.
             args: Argumentos ya validados por `validate`.
+            line: Línea (1-based) de la llamada para el mensaje de error.
         """

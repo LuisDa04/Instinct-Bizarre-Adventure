@@ -1,5 +1,3 @@
-"""Intérprete que recorre el AST instrucción a instrucción."""
-
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -7,15 +5,11 @@ from typing import TYPE_CHECKING
 
 from instinct.compiler.ast_nodes import Stmt
 from instinct.compiler.execution_context import ExecutionContext
-from instinct.compiler.tokens import TokenType
 from instinct.world.entities import Creature
 from instinct.world.world import World
-from .actions import ACTIONS, Action, ActionContext
 from .environment import Environment
 from .errors import ExecutionError
-from .functions import FUNCTIONS
 from .perceptions import TurnFrame, refresh
-from .values import apply_binary, negate, truthy
 
 if TYPE_CHECKING:
     from instinct.sim.engine import Engine

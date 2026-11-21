@@ -14,7 +14,7 @@ class Roar(Action):
     def validate(self, args: list[int | str], line: int) -> None:
         """Acepta cualquier valor: texto o número."""
 
-    def apply(self, ctx: ActionContext, args: list[int | str]) -> None:
+    def apply(self, ctx: ActionContext, args: list[int | str], line: int) -> None:
         """Encola el rugido en el motor y lo lleva al registro.
 
         Args:

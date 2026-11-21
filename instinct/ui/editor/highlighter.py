@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from PyQt6.QtGui import QSyntaxHighlighter, QTextCharFormat, QColor, QFont
-from PyQt6.QtCore import Qt, QRegularExpression
+from PyQt6.QtCore import QRegularExpression
 
 from instinct.ui.editor.compiler_bridge import get_catalogs
 

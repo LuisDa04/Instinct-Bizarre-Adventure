@@ -26,7 +26,7 @@ from PyQt6.QtGui import QFont, QTextCursor
 from instinct.ui.editor.highlighter import InstinctHighlighter
 from instinct.ui.editor.completer import InstinctCompleter
 from instinct.ui.editor.linter import InstinctLinter
-from instinct.ui.editor.file_manager import FileManager, EditorTab
+from instinct.ui.editor.file_manager import FileManager
 from instinct.ui.editor.hot_reload import HotReloadManager
 from instinct.ui.session import Session
 

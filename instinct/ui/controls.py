@@ -9,9 +9,9 @@ from .constants import (
     MAX_TILE_SIZE,
     MIN_TILE_SIZE,
     PHASE_PLACEMENT,
-    SPEEDS,
     ZOOM_STEP,
 )
+from instinct.sim.cli import SPEEDS
 from .state import UIState
 
 #: Acciones de un solo nombre; el resto lleva dato en `value`.

@@ -1,14 +1,10 @@
 """Hot-reload: recompila .ins y recarga en la sesión sin reiniciar el mundo.
 
-Reutiliza ``Session.reload_creature`` (API pública) y
-``instinct.loaders.creature_loader.load_creature`` (compilación).
+Reutiliza ``Session.reload_creature`` (API pública).
 """
 from __future__ import annotations
 
-from typing import Optional
-
 from instinct.ui.session import Session
-from instinct.loaders.creature_loader import load_creature
 
 
 class HotReloadManager:

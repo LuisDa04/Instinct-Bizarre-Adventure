@@ -1,9 +1,6 @@
 """Constantes de la interfaz gráfica: layout, colores y velocidades."""
 from __future__ import annotations
 
-# Reutiliza el catálogo del CLI para que ambas interfaces ofrezcan lo mismo.
-from instinct.sim.cli import SPEEDS
-
 # Ventana
 WINDOW_TITLE = "Instinct Bizarre Adventure"
 DEFAULT_WINDOW_SIZE = (1280, 800)

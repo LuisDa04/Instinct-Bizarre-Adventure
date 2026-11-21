@@ -15,6 +15,7 @@ if TYPE_CHECKING:
     from instinct.world.entities import Creature
     from instinct.lang.environment import Environment
     from instinct.lang.perceptions import TurnFrame
+    from instinct.lang.actions import Action
 
 
 @dataclass

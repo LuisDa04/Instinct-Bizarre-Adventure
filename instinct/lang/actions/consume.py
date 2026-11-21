@@ -24,7 +24,7 @@ class Consume(Action):
         self._require_number(args, 2, line)
         self._require_number(args, 3, line)
 
-    def apply(self, ctx: ActionContext, args: list[int | str]) -> None:
+    def apply(self, ctx: ActionContext, args: list[int | str], line: int) -> None:
         """Golpea como attack y cura; sin objetivo no hace nada.
 
         La cura no se relaciona con el daño ni con el objetivo; un

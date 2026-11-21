@@ -23,7 +23,7 @@ class Attack(Action):
         self._require_direction(args, 1, line)
         self._require_number(args, 2, line)
 
-    def apply(self, ctx: ActionContext, args: list[int | str]) -> None:
+    def apply(self, ctx: ActionContext, args: list[int | str], line: int) -> None:
         """Aplica el daño al objetivo; fuera del mapa no hace nada.
 
         Args:

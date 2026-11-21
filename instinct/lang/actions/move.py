@@ -22,7 +22,7 @@ class Move(Action):
         self._require_direction(args, 1, line)
         self._require_number(args, 2, line)
 
-    def apply(self, ctx: ActionContext, args: list[int | str]) -> None:
+    def apply(self, ctx: ActionContext, args: list[int | str], line: int) -> None:
         """Camina una a una hasta `speed` casillas o la primera no pisable.
 
         Con (0, 0) o speed no positivo no avanza; el turno se gasta igual

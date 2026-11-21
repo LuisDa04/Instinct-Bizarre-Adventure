@@ -15,7 +15,7 @@ class Say(Action):
     def validate(self, args: list[int | str], line: int) -> None:
         """Acepta cualquier valor: texto o número."""
 
-    def apply(self, ctx: ActionContext, args: list[int | str]) -> None:
+    def apply(self, ctx: ActionContext, args: list[int | str], line: int) -> None:
         """Lleva el texto al registro; sin registro se descarta.
 
         Args:
