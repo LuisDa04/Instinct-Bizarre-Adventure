@@ -173,7 +173,9 @@ class World:
         """
         if not self.walkable(x, y):
             return False
-        assert self.remove_creature(creature.x, creature.y) is creature
+        removed = self.remove_creature(creature.x, creature.y)
+        if removed is not creature:
+            raise RuntimeError(f"move_creature: criatura no encontrada en origen ({creature.x},{creature.y})")
         self._cells[y][x].creature = creature
         creature.x = x
         creature.y = y

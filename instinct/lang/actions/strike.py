@@ -24,7 +24,8 @@ def attacked_entity(ctx: ActionContext, dx: int, dy: int) -> Entity | None:
     creature = ctx.creature
     if dx == 0 and dy == 0:
         terrain = ctx.world.terrain_at(creature.x, creature.y)
-        assert terrain is not None  # una criatura colocada siempre está dentro
+        if terrain is None:
+            raise RuntimeError("Criatura sin terreno bajo sus pies")
         return terrain
     x, y = creature.x + dx, creature.y + dy
     target = ctx.world.creature_at(x, y)

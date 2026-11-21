@@ -258,16 +258,21 @@ class EditorWidget(QWidget):
             )
             return
 
-        name = tab.path.stem
+        # Compilar primero para obtener el nombre real de la especie
+        from instinct.loaders.creature_loader import load_creature
+        result = load_creature(tab.content)
+        if result.creature is None:
+            errors = [f"línea {e.line}: {e.message}" for e in result.errors]
+            QMessageBox.warning(self, "Error de compilación", "\n".join(errors))
+            return
+
+        name = result.creature.name
         ok, errors = self._hot_reload.reload_creature(name, tab.content)
 
         if ok:
             self._show_status(f"Recargado: {name}")
         else:
-            QMessageBox.warning(
-                self, "Error de compilación",
-                "\n".join(errors)
-            )
+            QMessageBox.warning(self, "Error de compilación", "\n".join(errors))
 
     def _show_status(self, msg: str) -> None:
         """Muestra un mensaje temporal (por ahora por consola)."""

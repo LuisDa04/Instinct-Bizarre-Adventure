@@ -48,5 +48,6 @@ class Reproduce(Action):
         ctx.creature.health -= health
         child = Creature(ctx.creature.program)
         child.health = health
-        assert ctx.world.place_creature(x, y, child)
+        if not ctx.world.place_creature(x, y, child):
+            raise RuntimeError(f"Reproducción fallida: no se pudo colocar cría en ({x},{y})")
         ctx.engine.queue_newborn(child)

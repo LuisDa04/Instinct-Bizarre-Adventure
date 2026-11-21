@@ -4,6 +4,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from instinct.sim.cli import CLI
+from instinct.loaders.creature_loader import load_creature
 
 from .constants import (
     MAX_LOG_LINES,
@@ -238,3 +239,50 @@ class Session:
         """Devuelve la semilla del campo si es numérica; si no, la vigente."""
         digits = self.state.seed_input.strip()
         return int(digits) if digits.isdigit() else self.state.seed
+
+    def reload_creature(self, name: str, source: str) -> tuple[bool, list[str]]:
+        """Recompila y recarga una criatura en la sesión activa.
+
+        Args:
+            name: Nombre de la criatura (especie) a recargar.
+            source: Texto completo del .ins a compilar.
+
+        Returns:
+            Tupla (ok, errores). Si ok es False, errores contiene los mensajes.
+        """
+        result = load_creature(source)
+        if result.creature is None:
+            errors = [f"línea {e.line}: {e.message}" for e in result.errors]
+            return False, errors
+
+        # Actualiza el registro de criaturas cargadas
+        self._cli.loaded.creatures[name] = result.creature
+
+        # Si la criatura ya está colocada en el mundo, la recargamos in-situ
+        if self.state.world is not None:
+            self._recolocar_criaturas_especie(name, result.creature)
+
+        return True, []
+
+    def _recolocar_criaturas_especie(self, name: str, new_program) -> None:
+        """Recarga en sitio todas las criaturas de una especie.
+
+        Mantiene su posición, salud, edad, variables y wait_remaining.
+        Solo actualiza el programa y los atributos de cabecera que puedan haber cambiado.
+        """
+        if self.state.world is None:
+            return
+        world = self.state.world
+        for y in range(world.height):
+            for x in range(world.width):
+                creature = world.creature_at(x, y)
+                if creature is not None and creature.name == name:
+                    # Actualizar programa y atributos de cabecera
+                    creature.program = new_program
+                    creature.faction = new_program.faction
+                    creature.vision = new_program.vision
+                    creature.lifespan = new_program.lifespan
+                    # health, age, variables, wait_remaining se preservan
+                    # pc se reinicia a start: por seguridad
+                    creature.pc = new_program.labels["start"]
+                    creature.wait_remaining = 0

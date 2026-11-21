@@ -67,7 +67,8 @@ def refresh(creature: Creature, world: World, engine: Engine) -> TurnFrame:
 def _ground(frame: TurnFrame):
     """Devuelve el terreno bajo la criatura, que siempre existe."""
     ground = frame.world.terrain_at(frame.creature.x, frame.creature.y)
-    assert ground is not None
+    if ground is None:
+        raise RuntimeError("Criatura sin terreno bajo sus pies")
     return ground
 
 

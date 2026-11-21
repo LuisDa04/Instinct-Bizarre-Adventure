@@ -95,6 +95,10 @@ class App:
                 for action in self.controls.handle(event, self.view.hotspots):
                     self._execute(action)
 
+            # 2. Procesar eventos Qt UNA VEZ por frame (fuera del for)
+            if _HAS_QT and self._qt_app is not None:
+                self._qt_app.processEvents()
+
             # 2. Actualización simulación (desacoplada del render)
             self._advance_simulation()
 

@@ -30,5 +30,7 @@ class Wait(Action):
             args: `[n]` ya validado como entero.
         """
         n = args[0]
-        assert isinstance(n, int)
+        if not isinstance(n, int):
+            from instinct.lang.errors import ExecutionError
+            raise ExecutionError(line, "la acción 'wait' espera un número")
         ctx.creature.wait_remaining = max(1, n) - 1
