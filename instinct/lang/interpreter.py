@@ -3,13 +3,14 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import TYPE_CHECKING
 
-from instinct.compiler.ast_nodes import Stmt
 from instinct.compiler.execution_context import ExecutionContext
+from instinct.compiler.runtime import RuntimeOps
 from instinct.world.entities import Creature
 from instinct.world.world import World
 from .environment import Environment
 from .errors import ExecutionError
-from .perceptions import TurnFrame, refresh
+from .perceptions import refresh
+from .runtime import LANG_RUNTIME
 
 if TYPE_CHECKING:
     from instinct.sim.engine import Engine
@@ -30,6 +31,7 @@ class Interpreter:
         world: World,
         engine: Engine,
         log: Callable[[str], None] | None = None,
+        runtime: RuntimeOps | None = None,
     ) -> None:
         """Crea el intérprete sobre el mundo y el motor dados.
 
@@ -37,10 +39,12 @@ class Interpreter:
             world: Rejilla donde están colocadas las criaturas.
             engine: Motor que aporta tick, aleatoriedad y rugidos.
             log: Destino de textos o None para descartarlos.
+            runtime: Operaciones del lenguaje inyectadas; por defecto LangRuntime.
         """
         self._world = world
         self._engine = engine
         self._log = log
+        self._runtime = runtime or LANG_RUNTIME
 
     def run_turn(self, creature: Creature) -> None:
         """Ejecuta un turno: refresca percepciones y avanza hasta una acción.
@@ -60,10 +64,9 @@ class Interpreter:
                 engine=self._engine,
                 creature=creature,
                 environment=Environment(creature.variables, frame),
-                frame=frame,
                 log=self._log,
                 pc=creature.pc,
-                max_lines=MAX_LINES,
+                runtime=self._runtime,
                 program_labels=creature.program.labels,
             )
 

@@ -72,16 +72,22 @@ def test_valid_creature_has_start_label() -> None:
 def test_lexical_error_becomes_load_error() -> None:
     source = URUK.replace("wait(1)", "wait(1) !")
     assert load_errors(source) == [(11, "carácter inesperado '!'")]
+    result = load_creature(source)
+    assert result.errors[0].code == "LEXICAL"
 
 
 def test_parse_error_becomes_load_error() -> None:
     source = URUK.replace("if health < 20 goto flee", "if health < goto flee")
     assert load_errors(source) == [(8, "se esperaba una expresión")]
+    result = load_creature(source)
+    assert result.errors[0].code == "SYNTAX"
 
 
 def test_semantic_error_becomes_load_error() -> None:
     source = URUK.replace("faction isengard", "faction isengard\nhealth 80")
     assert load_errors(source) == [(4, "clave de cabecera duplicada 'health'")]
+    result = load_creature(source)
+    assert result.errors[0].code == "SEMANTIC"
 
 
 def test_missing_start_becomes_load_error() -> None:
@@ -124,6 +130,7 @@ def test_load_creatures_rejects_duplicate_name(tmp_path) -> None:
     assert len(errors) == 1
     assert "ya está declarada" in errors[0].message
     assert errors[0].path.endswith("b_second.ins")
+    assert errors[0].code == "LOAD"
 
 
 def test_load_creatures_empty_directory(tmp_path) -> None:

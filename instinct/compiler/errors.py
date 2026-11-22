@@ -9,7 +9,11 @@ class CompileError(Exception):
     Attributes:
         line: Línea (1-based) donde se detectó el error.
         message: Descripción del fallo sin prefijo de línea.
+        code: Categoría estable del error para la UI y herramientas.
     """
+
+    code = "UNKNOWN"
+
     def __init__(self, line: int, message: str) -> None:
         """Crea el error componiendo el mensaje con su línea.
 
@@ -24,14 +28,17 @@ class CompileError(Exception):
 
 class LexError(CompileError):
     """Error léxico detectado al convertir el texto en tokens."""
-    pass
+
+    code = "LEXICAL"
 
 
 class ParseError(CompileError):
     """Error sintáctico detectado al construir el programa desde los tokens."""
-    pass
+
+    code = "SYNTAX"
 
 
 class SemanticError(CompileError):
     """Error semántico detectado al validar cabecera, etiquetas y llamadas."""
-    pass
+
+    code = "SEMANTIC"

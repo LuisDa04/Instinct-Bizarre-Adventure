@@ -19,7 +19,6 @@ from instinct.compiler.catalogs import (
 )
 from instinct.compiler.lexer import KEYWORDS
 from instinct.loaders.creature_loader import CreatureResult, load_creature
-from instinct.compiler.errors import LexError, ParseError, SemanticError
 
 
 @dataclass(frozen=True)
@@ -31,7 +30,8 @@ class Diagnostic:
         column: Columna 0-based (reservada para futuro; siempre 0 por ahora).
         severity: "error" o "warning".
         message: Texto legible del error en español.
-        code: Categoría del error ("LEXICAL", "SYNTAX", "SEMANTIC", "LOAD", "RUNTIME").
+        code: Categoría estable del error: "LEXICAL", "SYNTAX", "SEMANTIC",
+            "LOAD" o "RUNTIME". "UNKNOWN" solo como fallback defensivo.
     """
 
     line: int
@@ -39,14 +39,6 @@ class Diagnostic:
     severity: str
     message: str
     code: str
-
-
-# Mapeo explícito de clases de error a códigos documentados
-_ERROR_CODE_MAP = {
-    "LexError": "LEXICAL",
-    "ParseError": "SYNTAX",
-    "SemanticError": "SEMANTIC",
-}
 
 
 def compile_source(source: str) -> tuple[Optional[object], list[Diagnostic]]:
@@ -67,7 +59,7 @@ def compile_source(source: str) -> tuple[Optional[object], list[Diagnostic]]:
             column=0,
             severity="error",
             message=error.message,
-            code=_ERROR_CODE_MAP.get(error.__class__.__name__, "UNKNOWN"),
+            code=getattr(error, "code", "UNKNOWN"),
         )
         for error in result.errors
     ]

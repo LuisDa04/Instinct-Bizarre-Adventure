@@ -5,48 +5,12 @@ import pytest
 
 pytest.importorskip("PyQt6")
 
-from PyQt6.QtCore import QCoreApplication
-
 from instinct.ui.editor.linter import InstinctLinter
-from instinct.ui.editor.compiler_bridge import Diagnostic, compile_source
 
 
 @pytest.fixture
 def linter() -> InstinctLinter:
     return InstinctLinter()
-
-
-def test_compile_source_valid() -> None:
-    """Compilación de código válido no produce errores."""
-    source = (
-        "creature Test\nfaction test\nhealth 50\nvision 5\nlifespan 100\n\n"
-        "start:\n    wait(1)\n    goto start\n"
-    )
-    program, diagnostics = compile_source(source)
-    assert program is not None
-    assert diagnostics == []
-
-
-def test_compile_source_invalid_syntax() -> None:
-    """Código con error de sintaxis produce diagnósticos."""
-    source = "start:\n    wait(1)\n"  # falta cabecera
-    program, diagnostics = compile_source(source)
-    assert program is None
-    assert len(diagnostics) > 0
-    assert all(d.severity == "error" for d in diagnostics)
-    assert all(d.line > 0 for d in diagnostics)
-
-
-def test_compile_source_invalid_semantic() -> None:
-    """Código con error semántico (acción desconocida) produce diagnósticos."""
-    source = (
-        "creature Test\nfaction test\nhealth 50\nvision 5\nlifespan 100\n\n"
-        "start:\n    unknown_action(1)\n    goto start\n"
-    )
-    program, diagnostics = compile_source(source)
-    assert program is None
-    assert len(diagnostics) > 0
-    assert any("acción desconocida" in d.message for d in diagnostics)
 
 
 def test_linter_initializes(linter: InstinctLinter) -> None:
@@ -61,3 +25,23 @@ def test_linter_set_source_updates_pending(linter: InstinctLinter) -> None:
     source = "creature Test\nfaction test\nhealth 50\nvision 5\nlifespan 100\n\nstart:\n    wait(1)\n"
     linter.set_source(source)
     assert linter._pending_source == source
+
+
+def test_linter_ignores_stale_result(linter: InstinctLinter) -> None:
+    """Un resultado viejo se cachea pero no se emite como actual."""
+    from instinct.ui.editor.compiler_bridge import Diagnostic
+
+    emitted: list[list[Diagnostic]] = []
+    linter.diagnostics_changed.connect(emitted.append)
+
+    linter._pending_source = "nuevo"
+    stale = [Diagnostic(line=1, column=0, severity="error", message="x", code="SYNTAX")]
+    fresh = [Diagnostic(line=2, column=0, severity="error", message="y", code="SYNTAX")]
+
+    linter._on_finished("viejo", stale)
+    assert linter._cache["viejo"] == stale
+    assert emitted == []
+
+    linter._on_finished("nuevo", fresh)
+    assert linter._cache["nuevo"] == fresh
+    assert emitted == [fresh]

@@ -6,11 +6,10 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 from .tokens import TokenType
-from instinct.lang.values import truthy
 
 if TYPE_CHECKING:
-    from instinct.compiler.execution_context import ExecutionContext
-    from instinct.lang.actions import Action
+    from .execution_context import ExecutionContext
+    from .runtime import ActionLike
 
 
 @dataclass(frozen=True)
@@ -72,9 +71,8 @@ class Unary(Expr):
     def eval(self, ctx: ExecutionContext) -> int | str:
         operand = self.operand.eval(ctx)
         if self.op is TokenType.MINUS:
-            from instinct.lang.values import negate
-            return negate(operand, self.line)
-        return 1 if not truthy(operand) else 0
+            return ctx.runtime.negate(operand, self.line)
+        return 1 if not ctx.runtime.truthy(operand) else 0
 
 
 @dataclass(frozen=True)
@@ -94,8 +92,7 @@ class Binary(Expr):
     def eval(self, ctx: ExecutionContext) -> int | str:
         left = self.left.eval(ctx)
         right = self.right.eval(ctx)
-        from instinct.lang.values import apply_binary
-        return apply_binary(self.op, left, right, self.line)
+        return ctx.runtime.apply_binary(self.op, left, right, self.line)
 
 
 @dataclass(frozen=True)
@@ -114,14 +111,13 @@ class Logical(Expr):
 
     def eval(self, ctx: ExecutionContext) -> int | str:
         left = self.left.eval(ctx)
-        from instinct.lang.values import truthy
         if self.op is TokenType.AND:
-            if not truthy(left):
+            if not ctx.runtime.truthy(left):
                 return 0
-            return 1 if truthy(self.right.eval(ctx)) else 0
-        if truthy(left):
+            return 1 if ctx.runtime.truthy(self.right.eval(ctx)) else 0
+        if ctx.runtime.truthy(left):
             return 1
-        return 1 if truthy(self.right.eval(ctx)) else 0
+        return 1 if ctx.runtime.truthy(self.right.eval(ctx)) else 0
 
 
 @dataclass(frozen=True)
@@ -138,8 +134,9 @@ class Call(Expr):
 
     def eval(self, ctx: ExecutionContext) -> int | str:
         args = [arg.eval(ctx) for arg in self.args]
-        from instinct.lang.functions import FUNCTIONS
-        return FUNCTIONS[self.callee](args, ctx.creature, ctx.world, self.line)
+        return ctx.runtime.call_function(
+            self.callee, args, ctx.creature, ctx.world, self.line
+        )
 
 
 @dataclass(frozen=True)
@@ -206,8 +203,7 @@ class IfGoto(Stmt):
     label: str
 
     def execute(self, ctx: ExecutionContext) -> None:
-        from instinct.lang.values import truthy
-        if truthy(self.condition.eval(ctx)):
+        if ctx.runtime.truthy(self.condition.eval(ctx)):
             if ctx.program_labels is not None and self.label in ctx.program_labels:
                 ctx.pc = ctx.program_labels[self.label]
             else:
@@ -245,27 +241,10 @@ class ActionCall(Stmt):
     name: str
     args: list[Expr]
 
-    def execute(self, ctx: ExecutionContext) -> "Action | None":
-        from instinct.lang.actions import ACTIONS, Action
+    def execute(self, ctx: ExecutionContext) -> ActionLike | None:
         args = [arg.eval(ctx) for arg in self.args]
         ctx.pc += 1
-        action = ACTIONS.get(self.name)
-        if action is None:
-            from instinct.lang.errors import ExecutionError
-            raise ExecutionError(self.line, f"acción no implementada {self.name!r}")
-        action.validate(args, self.line)
-        from instinct.lang.actions import ActionContext
-        action.apply(
-            ActionContext(
-                world=ctx.world,
-                engine=ctx.engine,
-                creature=ctx.creature,
-                log=ctx.log,
-            ),
-            args,
-            self.line,
-        )
-        return action
+        return ctx.runtime.execute_action(self.name, args, ctx, self.line)
 
 
 @dataclass(frozen=True)

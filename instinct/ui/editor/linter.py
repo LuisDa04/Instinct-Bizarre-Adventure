@@ -14,7 +14,7 @@ from instinct.ui.editor.compiler_bridge import compile_source, Diagnostic
 class _LintWorker(QObject):
     """Worker que corre en hilo separado: compila el source y emite diagnósticos."""
 
-    finished = pyqtSignal(list)  # list[Diagnostic]
+    finished = pyqtSignal(str, list)  # (source, list[Diagnostic])
 
     def __init__(self, source: str) -> None:
         super().__init__()
@@ -23,7 +23,7 @@ class _LintWorker(QObject):
     def run(self) -> None:
         """Ejecuta la compilación y emite el resultado."""
         _, diagnostics = compile_source(self._source)
-        self.finished.emit(diagnostics)
+        self.finished.emit(self._source, diagnostics)
 
 
 class InstinctLinter(QObject):
@@ -81,7 +81,8 @@ class InstinctLinter(QObject):
 
         self._thread.start()
 
-    def _on_finished(self, diagnostics: list[Diagnostic]) -> None:
-        """Guarda en caché y emite los diagnósticos."""
-        self._cache[self._pending_source] = diagnostics
-        self.diagnostics_changed.emit(diagnostics)
+    def _on_finished(self, source: str, diagnostics: list[Diagnostic]) -> None:
+        """Guarda en caché y emite solo si el resultado sigue vigente."""
+        self._cache[source] = diagnostics
+        if source == self._pending_source:
+            self.diagnostics_changed.emit(diagnostics)

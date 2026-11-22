@@ -1,9 +1,10 @@
 """Sesión de la interfaz: acciones del usuario ejecutadas sobre el CLI."""
 from __future__ import annotations
 
+from dataclasses import dataclass
 from pathlib import Path
 
-from instinct.sim.cli import CLI
+from instinct.sim.cli import CLI, SPEEDS
 from instinct.loaders.creature_loader import load_creature
 
 from .constants import (
@@ -12,9 +13,17 @@ from .constants import (
     PHASE_NO_MAPS,
     PHASE_PLACEMENT,
     PHASE_SIMULATION,
-    SPEEDS,
 )
 from .state import UIState
+
+
+@dataclass(frozen=True)
+class ReloadResult:
+    """Resultado de una recarga en caliente de criatura."""
+
+    ok: bool
+    name: str | None
+    errors: list[str]
 
 
 class Session:
@@ -240,29 +249,50 @@ class Session:
         digits = self.state.seed_input.strip()
         return int(digits) if digits.isdigit() else self.state.seed
 
+    def reload_from_source(self, source: str) -> ReloadResult:
+        """Recompila y recarga una criatura usando el nombre de su cabecera.
+
+        Args:
+            source: Texto completo del .ins a compilar.
+
+        Returns:
+            Resultado con ok, nombre de especie y errores formateados.
+        """
+        if self._cli.loaded is None:
+            return ReloadResult(False, None, ["no hay contenido cargado"])
+
+        result = load_creature(source)
+        if result.creature is None:
+            errors = [f"línea {e.line}: {e.message}" for e in result.errors]
+            return ReloadResult(False, None, errors)
+
+        name = result.creature.name
+        self._apply_reload(name, result.creature)
+        return ReloadResult(True, name, [])
+
     def reload_creature(self, name: str, source: str) -> tuple[bool, list[str]]:
         """Recompila y recarga una criatura en la sesión activa.
 
+        Mantiene compatibilidad con la API anterior. El nombre efectivo es el
+        declarado en la cabecera del .ins compilado.
+
         Args:
-            name: Nombre de la criatura (especie) a recargar.
+            name: Nombre de la criatura (especie) a recargar. Se ignora si la
+                cabecera declara otro nombre; se conserva por compatibilidad.
             source: Texto completo del .ins a compilar.
 
         Returns:
             Tupla (ok, errores). Si ok es False, errores contiene los mensajes.
         """
-        result = load_creature(source)
-        if result.creature is None:
-            errors = [f"línea {e.line}: {e.message}" for e in result.errors]
-            return False, errors
+        result = self.reload_from_source(source)
+        return result.ok, result.errors
 
-        # Actualiza el registro de criaturas cargadas
-        self._cli.loaded.creatures[name] = result.creature
-
-        # Si la criatura ya está colocada en el mundo, la recargamos in-situ
+    def _apply_reload(self, name: str, new_program) -> None:
+        """Aplica un programa ya compilado al catálogo y al mundo activo."""
+        assert self._cli.loaded is not None
+        self._cli.loaded.creatures[name] = new_program
         if self.state.world is not None:
-            self._recolocar_criaturas_especie(name, result.creature)
-
-        return True, []
+            self._recolocar_criaturas_especie(name, new_program)
 
     def _recolocar_criaturas_especie(self, name: str, new_program) -> None:
         """Recarga en sitio todas las criaturas de una especie.
@@ -285,4 +315,3 @@ class Session:
                     # health, age, variables, wait_remaining se preservan
                     # pc se reinicia a start: por seguridad
                     creature.pc = new_program.labels["start"]
-                    creature.wait_remaining = 0

@@ -1,4 +1,4 @@
-"""Constantes de la interfaz gráfica: layout, colores y velocidades."""
+"""Constantes de la interfaz gráfica: layout y colores."""
 from __future__ import annotations
 
 # Ventana

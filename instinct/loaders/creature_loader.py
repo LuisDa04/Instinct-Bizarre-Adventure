@@ -96,6 +96,6 @@ def _as_load_errors(errors: list[CompileError]) -> list[LoadError]:
         errors: Errores de cualquier etapa del compilador.
 
     Returns:
-        Lista nueva de LoadError con la misma línea y mensaje.
+        Lista nueva de LoadError con la misma línea, mensaje y categoría.
     """
-    return [LoadError(error.line, error.message) for error in errors]
+    return [LoadError(error.line, error.message, code=error.code) for error in errors]

@@ -65,6 +65,7 @@ class App:
         self._last_step = 0.0
 
         # Editor PyQt6 (ventana separada, compartida sesión)
+        self._qt_app = None
         self._editor_window: Optional[QMainWindow] = None
         self._editor_widget: Optional[EditorWidget] = None
         if _HAS_QT:
@@ -87,16 +88,11 @@ class App:
                 if event.type == pygame.QUIT:
                     self._running = False
                     continue
-
-                # Procesar eventos Qt si están disponibles (procesar cola de Qt)
-                if _HAS_QT and self._qt_app is not None:
-                    self._qt_app.processEvents()
-
                 for action in self.controls.handle(event, self.view.hotspots):
                     self._execute(action)
 
             # 2. Procesar eventos Qt UNA VEZ por frame (fuera del for)
-            if _HAS_QT and self._qt_app is not None:
+            if self._qt_app is not None:
                 self._qt_app.processEvents()
 
             # 2. Actualización simulación (desacoplada del render)

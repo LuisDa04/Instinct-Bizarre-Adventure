@@ -1,10 +1,10 @@
 """Pruebas del estado de la interfaz: fases, velocidad y listas de contenido."""
 from __future__ import annotations
 
+from instinct.sim.cli import SPEEDS
 from instinct.ui.constants import (
     PHASE_LOADING,
     PHASE_PLACEMENT,
-    SPEEDS,
 )
 from instinct.ui.state import UIState
 

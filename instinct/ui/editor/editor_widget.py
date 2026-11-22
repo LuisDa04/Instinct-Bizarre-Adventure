@@ -21,7 +21,7 @@ from PyQt6.QtWidgets import (
     QToolBar, QFileDialog, QMessageBox,
 )
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QFont, QTextCursor
+from PyQt6.QtGui import QFont, QKeySequence, QShortcut, QTextCursor
 
 from instinct.ui.editor.highlighter import InstinctHighlighter
 from instinct.ui.editor.completer import InstinctCompleter
@@ -55,6 +55,7 @@ class EditorWidget(QWidget):
         self._hot_reload = HotReloadManager(session)
 
         self._setup_ui()
+        self._setup_shortcuts()
         self._new_tab()  # Tab inicial vacío
 
     # ------------------------------------------------------------------
@@ -100,6 +101,33 @@ class EditorWidget(QWidget):
 
         layout.addWidget(splitter)
 
+    def _setup_shortcuts(self) -> None:
+        """Registra atajos de teclado del editor."""
+        QShortcut(QKeySequence.StandardKey.New, self, self.new_tab)
+        QShortcut(QKeySequence.StandardKey.Open, self, self.open_file)
+        QShortcut(QKeySequence.StandardKey.Save, self, self.save_current)
+        QShortcut(QKeySequence("Ctrl+R"), self, self.hot_reload_current)
+
+    # ------------------------------------------------------------------
+    # API pública (usada por App)
+    # ------------------------------------------------------------------
+
+    def new_tab(self) -> None:
+        """Crea una pestaña vacía."""
+        self._new_tab()
+
+    def open_file(self) -> None:
+        """Abre un fichero .ins desde el sistema de archivos."""
+        self._open_file()
+
+    def save_current(self) -> None:
+        """Guarda la pestaña actual."""
+        self._save_current()
+
+    def hot_reload_current(self) -> None:
+        """Recarga la criatura de la pestaña actual."""
+        self._hot_reload_current()
+
     # ------------------------------------------------------------------
     # Gestión de pestañas y editor
     # ------------------------------------------------------------------
@@ -107,11 +135,24 @@ class EditorWidget(QWidget):
     def _new_tab(self) -> None:
         """Crea una pestaña vacía y la selecciona."""
         idx = self._file_manager.new_tab()
+        tab = self._file_manager.tabs[idx]
+        self._add_editor_tab(tab)
+
+    def _open_path(self, path: Path) -> None:
+        """Abre un archivo en una pestaña nueva del editor."""
+        idx = self._file_manager.open_file(path)
+        tab = self._file_manager.tabs[idx]
+        self._add_editor_tab(tab)
+
+    def _add_editor_tab(self, tab) -> None:
+        """Crea el widget de editor para una pestaña del FileManager."""
         editor = self._create_editor()
-        tab = self._file_manager.tabs[-1]
+        editor.setPlainText(tab.content)
         self._tabs.addTab(editor, tab.name)
-        self._tabs.setCurrentIndex(idx)
+        self._tabs.setCurrentIndex(self._tabs.count() - 1)
         self._setup_editor_connections(editor)
+        tab.dirty = False
+        self._update_tab_title()
 
     def _create_editor(self) -> QPlainTextEdit:
         """Crea un QPlainTextEdit con highlighter, completer y linter."""
@@ -139,14 +180,15 @@ class EditorWidget(QWidget):
 
     def _on_text_changed(self, editor: QPlainTextEdit) -> None:
         """Se llama cuando el usuario modifica el texto del editor."""
-        tab = self._file_manager.current_tab
-        if tab is None:
+        idx = self._tabs.indexOf(editor)
+        if idx < 0 or idx >= len(self._file_manager.tabs):
             return
+        tab = self._file_manager.tabs[idx]
 
         # Actualizar modelo de datos
         tab.content = editor.toPlainText()
         tab.dirty = True
-        self._update_tab_title()
+        self._update_tab_title(idx)
 
         # Notificar al completer y al linter
         completer = editor.property("_completer")
@@ -157,10 +199,10 @@ class EditorWidget(QWidget):
         if linter is not None:
             linter.set_source(tab.content)
 
-    def _update_tab_title(self) -> None:
-        """Actualiza el título de la pestaña actual (añade * si está sucia)."""
-        idx = self._tabs.currentIndex()
-        if idx < 0:
+    def _update_tab_title(self, index: int | None = None) -> None:
+        """Actualiza el título de una pestaña (añade * si está sucia)."""
+        idx = self._tabs.currentIndex() if index is None else index
+        if idx < 0 or idx >= len(self._file_manager.tabs):
             return
         tab = self._file_manager.tabs[idx]
         title = tab.name + ("*" if tab.dirty else "")
@@ -189,7 +231,9 @@ class EditorWidget(QWidget):
             if reply == QMessageBox.StandardButton.Cancel:
                 return
             if reply == QMessageBox.StandardButton.Yes:
+                self._tabs.setCurrentIndex(index)
                 self._save_current()
+                tab = self._file_manager.tabs[index]
                 if tab.dirty:  # El usuario canceló el guardar
                     return
 
@@ -207,15 +251,12 @@ class EditorWidget(QWidget):
         )
         if not path:
             return
-        p = Path(path)
-        self._file_manager.open_file(p)
-        self._new_tab()  # Crea pestaña y carga contenido
-        editor = self._current_editor()
-        tab = self._file_manager.current_tab
-        if editor is not None and tab is not None:
-            editor.setPlainText(tab.content)
-            tab.dirty = False
-            self._update_tab_title()
+        try:
+            self._open_path(Path(path))
+        except (OSError, UnicodeDecodeError) as exc:
+            QMessageBox.warning(
+                self, "Error al abrir", f"No se pudo abrir el archivo:\n{exc}"
+            )
 
     def _save_current(self) -> None:
         """Guarda la pestaña actual en su ruta existente."""
@@ -258,21 +299,11 @@ class EditorWidget(QWidget):
             )
             return
 
-        # Compilar primero para obtener el nombre real de la especie
-        from instinct.loaders.creature_loader import load_creature
-        result = load_creature(tab.content)
-        if result.creature is None:
-            errors = [f"línea {e.line}: {e.message}" for e in result.errors]
-            QMessageBox.warning(self, "Error de compilación", "\n".join(errors))
-            return
-
-        name = result.creature.name
-        ok, errors = self._hot_reload.reload_creature(name, tab.content)
-
-        if ok:
-            self._show_status(f"Recargado: {name}")
+        result = self._hot_reload.reload_from_source(tab.content)
+        if result.ok:
+            self._show_status(f"Recargado: {result.name}")
         else:
-            QMessageBox.warning(self, "Error de compilación", "\n".join(errors))
+            QMessageBox.warning(self, "Error de compilación", "\n".join(result.errors))
 
     def _show_status(self, msg: str) -> None:
         """Muestra un mensaje temporal (por ahora por consola)."""

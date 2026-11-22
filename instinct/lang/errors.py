@@ -7,4 +7,5 @@ from instinct.compiler.errors import CompileError
 
 class ExecutionError(CompileError):
     """Error en tiempo de ejecución que interrumpe el turno con un ictus."""
-    pass
+
+    code = "RUNTIME"

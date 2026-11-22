@@ -7,11 +7,12 @@ from instinct.loaders.pipeline import LoadedWorld
 from instinct.sim.engine import Engine
 from instinct.world.world import World
 
+from instinct.sim.cli import SPEEDS
+
 from .constants import (
     BASE_TILE_SIZE,
     PHASE_LOADING,
     PHASE_SIMULATION,
-    SPEEDS,
 )
 
 
