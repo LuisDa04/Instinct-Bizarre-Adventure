@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Optional
 
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QSplitter,
+    QApplication, QWidget, QVBoxLayout, QSplitter,
     QTabWidget, QPlainTextEdit, QListWidget, QListWidgetItem,
     QToolBar, QFileDialog, QMessageBox,
 )
@@ -57,6 +57,10 @@ class EditorWidget(QWidget):
         self._setup_ui()
         self._setup_shortcuts()
         self._new_tab()  # Tab inicial vacío
+
+        app = QApplication.instance()
+        if app is not None:
+            app.aboutToQuit.connect(self.shutdown)
 
     # ------------------------------------------------------------------
     # Construcción de la interfaz
@@ -128,6 +132,15 @@ class EditorWidget(QWidget):
         """Recarga la criatura de la pestaña actual."""
         self._hot_reload_current()
 
+    def shutdown(self) -> None:
+        """Detiene linters y recursos de todas las pestañas."""
+        for i in range(self._tabs.count()):
+            self._shutdown_editor(self._tabs.widget(i))
+
+    def closeEvent(self, event) -> None:  # noqa: N802 - Qt override
+        self.shutdown()
+        super().closeEvent(event)
+
     # ------------------------------------------------------------------
     # Gestión de pestañas y editor
     # ------------------------------------------------------------------
@@ -164,9 +177,11 @@ class EditorWidget(QWidget):
         # Instalar componentes
         highlighter = InstinctHighlighter(editor.document())
         completer = InstinctCompleter(editor)
-        completer.setWidget(editor)
-        linter = InstinctLinter()
-        linter.diagnostics_changed.connect(lambda d: self._update_errors(d))
+        # Phase 1: do not attach QCompleter to QPlainTextEdit. The widget
+        # integration installs an event filter that can freeze/close the editor
+        # on typing/paste in .ins files. Completer is kept for Phase 2.
+        linter = InstinctLinter(editor)
+        linter.diagnostics_changed.connect(self._update_errors)
 
         # Guardar referencias como propiedades para acceso rápido
         editor.setProperty("_highlighter", highlighter)
@@ -190,11 +205,8 @@ class EditorWidget(QWidget):
         tab.dirty = True
         self._update_tab_title(idx)
 
-        # Notificar al completer y al linter
-        completer = editor.property("_completer")
-        if completer is not None:
-            completer.update_context(tab.content)
-
+        # Phase 1: completer update disabled while not attached to editor
+        # (avoids per-keystroke regex scan + model rebuild).
         linter = editor.property("_linter")
         if linter is not None:
             linter.set_source(tab.content)
@@ -215,6 +227,33 @@ class EditorWidget(QWidget):
     def _on_tab_changed(self, index: int) -> None:
         """Se llama cuando el usuario cambia de pestaña."""
         self._file_manager.set_current_index(index)
+        self._refresh_error_panel_for_index(index)
+
+    def _refresh_error_panel_for_index(self, index: int) -> None:
+        """Muestra diagnósticos cacheados de la pestaña indicada."""
+        editor = self._tabs.widget(index)
+        if not isinstance(editor, QPlainTextEdit):
+            self._error_list.clear()
+            return
+        linter = editor.property("_linter")
+        if linter is None:
+            self._error_list.clear()
+            return
+        diagnostics = linter._cache.get(editor.toPlainText())
+        self._render_diagnostics(diagnostics if diagnostics is not None else [])
+
+    def _shutdown_editor(self, editor) -> None:
+        """Detiene recursos asociados a un editor de pestaña."""
+        if not isinstance(editor, QPlainTextEdit):
+            return
+        linter = editor.property("_linter")
+        shutdown = getattr(linter, "shutdown", None)
+        if callable(shutdown):
+            try:
+                linter.diagnostics_changed.disconnect(self._update_errors)
+            except (TypeError, RuntimeError):
+                pass
+            shutdown()
 
     def _close_tab(self, index: int) -> None:
         """Cierra la pestaña en el índice dado, preguntando si está sucia."""
@@ -237,8 +276,12 @@ class EditorWidget(QWidget):
                 if tab.dirty:  # El usuario canceló el guardar
                     return
 
+        editor = self._tabs.widget(index)
         if self._file_manager.close_tab(index):
+            self._shutdown_editor(editor)
             self._tabs.removeTab(index)
+            if isinstance(editor, QWidget):
+                editor.deleteLater()
 
     # ------------------------------------------------------------------
     # Archivo: abrir, guardar, guardar como
@@ -315,6 +358,16 @@ class EditorWidget(QWidget):
 
     def _update_errors(self, diagnostics) -> None:
         """Rellena el panel de errores con los diagnósticos del linter."""
+        sender = self.sender()
+        current = self._current_editor()
+        if current is not None:
+            current_linter = current.property("_linter")
+            if sender is not None and current_linter is not sender:
+                return
+        self._render_diagnostics(diagnostics)
+
+    def _render_diagnostics(self, diagnostics) -> None:
+        """Renderiza diagnósticos en el panel de errores."""
         self._error_list.clear()
         for d in diagnostics:
             item = QListWidgetItem(f"Línea {d.line}: {d.message}")
