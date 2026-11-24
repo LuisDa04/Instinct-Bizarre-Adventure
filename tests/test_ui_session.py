@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from instinct.sim.cli import CLI
 from instinct.ui.session import Session
 
 GRASS = "terrain Grass\nchar .\nresource_max 100\nregen 2\n"
@@ -69,6 +70,38 @@ def test_load_without_maps_stays_stuck(tmp_path) -> None:
     assert session.state.phase == "no_maps"
 
 
+def test_load_with_unreadable_file_keeps_valid_content(tmp_path) -> None:
+    base = build_content(tmp_path)
+    bad_path = base / "creatures" / "z_mal.ins"
+    bad_path.write_bytes(b"creature \xf1\n")
+    session = Session(base, seed=42)
+    assert session.load() is True
+    assert session.state.map_names == ["Prueba"]
+    assert session.state.loaded is not None
+    assert [
+        (error.line, error.message, error.path)
+        for error in session.state.loaded.load_errors
+    ] == [(1, "el archivo no está codificado en UTF-8", str(bad_path))]
+    assert "el archivo no está codificado en UTF-8" in session.state.load_report
+
+
+def test_load_with_duplicate_map_keeps_first_and_reports_second(tmp_path) -> None:
+    base = build_content(tmp_path)
+    duplicate = base / "maps" / "z_prueba.map"
+    duplicate.write_text("Prueba\n....\n....\n....\n", encoding="utf-8")
+    session = Session(base, seed=42)
+    assert session.load() is True
+    assert session.state.map_names == ["Prueba"]
+    assert session.state.loaded is not None
+    assert session.state.loaded.maps["Prueba"].cells[1][1].object is not None
+    assert [
+        (error.line, error.message, error.path)
+        for error in session.state.loaded.load_errors
+    ] == [(1, "nombre de mapa duplicado 'Prueba'", str(duplicate))]
+    assert "nombre de mapa duplicado" in session.state.load_report
+    assert str(duplicate) in session.state.load_report
+
+
 def test_select_map_enters_placement(tmp_path) -> None:
     session = make_session(tmp_path)
     assert session.state.phase == "placement"
@@ -84,6 +117,27 @@ def test_select_map_unknown_keeps_phase(tmp_path) -> None:
     assert "no existe" in message
     assert session.state.phase == "placement"
     assert session.state.map_name == "Prueba"
+
+
+def test_select_map_unknown_with_alternate_wording_keeps_phase(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """Un error con otro redactado no debe preparar la fase de colocación."""
+    session = Session(build_content(tmp_path), seed=42)
+    session.load()
+    original = session._cli.select_map
+
+    def alternate(name: str) -> str:
+        return original(name).replace("no existe", "rechazado")
+
+    monkeypatch.setattr(session._cli, "select_map", alternate)
+
+    message = session.select_map("NoExiste")
+
+    assert "rechazado" in message
+    assert session.state.phase == "map_select"
+    assert session.state.map_name is None
+    assert session.state.world is None
 
 
 def test_pick_species_toggles(tmp_path) -> None:
@@ -111,6 +165,29 @@ def test_cell_over_object_reports_occupied(tmp_path) -> None:
     session.cell(1, 1)
     assert session.state.world.creature_at(1, 1) is None
     assert any("ocupada" in m for m in session.state.messages)
+
+
+def test_cell_records_placement_from_world_not_wording(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """La colocación se registra por el mundo aunque cambie el mensaje."""
+    session = make_session(tmp_path)
+    original = session._cli.place_creature
+
+    def alternate(species: str, x: int, y: int) -> str:
+        return original(species, x, y).replace("colocada", "ubicada")
+
+    monkeypatch.setattr(session._cli, "place_creature", alternate)
+    session.pick_species("Uruk")
+    session.cell(0, 0)
+
+    assert "ubicada" in session.state.messages[-1]
+    assert session.state.world.creature_at(0, 0) is not None
+    assert session._placements == [("Uruk", 0, 0)]
+
+    session.cell(1, 1)
+    assert session.state.world.creature_at(1, 1) is None
+    assert session._placements == [("Uruk", 0, 0)]
 
 
 def test_cell_without_species_does_nothing(tmp_path) -> None:
@@ -219,6 +296,34 @@ def test_repeat_seed_changes_seed_value(tmp_path) -> None:
     session.repeat_seed()
     assert session.state.seed == 99
     assert session.state.world.creature_at(0, 0) is not None
+
+
+def test_repeat_seed_unknown_map_with_alternate_wording_keeps_state(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """Un error con otro redactado no sustituye el CLI, el mundo ni la fase."""
+    session = make_session(tmp_path, seed=7)
+    session.state.map_name = "NoExiste"
+    session.state.seed_input = "99"
+    previous_cli = session._cli
+    previous_world = session.state.world
+    previous_phase = session.state.phase
+
+    original = CLI.select_map
+
+    def alternate(self, name: str) -> str:
+        return original(self, name).replace("no existe", "rechazado")
+
+    monkeypatch.setattr(CLI, "select_map", alternate)
+
+    session.repeat_seed()
+
+    assert any("rechazado" in message for message in session.state.messages)
+    assert session._cli is previous_cli
+    assert session.state.world is previous_world
+    assert session.state.seed == 7
+    assert session.state.seed_input == "99"
+    assert session.state.phase == previous_phase
 
 
 def test_repeat_seed_with_garbage_input_keeps_seed(tmp_path) -> None:

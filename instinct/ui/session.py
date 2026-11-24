@@ -78,9 +78,9 @@ class Session:
         Returns:
             Mensaje del CLI; si el mapa no existe la fase no cambia.
         """
+        if name not in self._cli.map_names():
+            return self._cli.select_map(name)
         message = self._cli.select_map(name)
-        if "no existe" in message:
-            return message
         self.state.map_name = name
         self.state.world = self._cli.world
         self.state.engine = self._cli.engine
@@ -126,7 +126,8 @@ class Session:
         elif self.state.placement_species is not None:
             species = self.state.placement_species
             message = self._cli.place_creature(species, x, y)
-            if "colocada" in message:
+            placed_creature = self.state.world.creature_at(x, y)
+            if placed_creature is not None and placed_creature.name == species:
                 self._placements.append((species, x, y))
         else:
             return
@@ -212,8 +213,9 @@ class Session:
         seed = self._seed_from_input()
         cli = CLI(self._base_dir, seed=seed)
         cli.loaded = self._cli.loaded
-        message = cli.select_map(self.state.map_name or "")
-        if "no existe" in message:
+        map_name = self.state.map_name or ""
+        message = cli.select_map(map_name)
+        if map_name not in cli.map_names():
             self.state.messages.append(message)
             return
         for species, x, y in self._placements:
