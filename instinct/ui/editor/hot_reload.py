@@ -18,9 +18,13 @@ class HotReloadManager:
         """Crea el gestor de hot-reload sobre una sesión existente."""
         self._session = session
 
-    def reload_from_source(self, source: str) -> ReloadResult:
-        """Recompila y recarga una criatura usando el nombre de su cabecera."""
-        return self._session.reload_from_source(source)
+    def reload_from_source(
+        self, source: str, expected_name: str | None = None
+    ) -> ReloadResult:
+        """Recompila y recarga una criatura comprobando el nombre esperado."""
+        return self._session.reload_from_source(
+            source, expected_name=expected_name
+        )
 
     def reload_creature(self, name: str, source: str) -> tuple[bool, list[str]]:
         """Recompila y recarga una criatura en la sesión activa.
