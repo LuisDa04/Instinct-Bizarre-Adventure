@@ -1,5 +1,5 @@
 from instinct.compiler.lexer import scan
-from instinct.compiler.tokens import TokenType
+from instinct.compiler.tokens import Token, TokenType
 
 
 def types(source: str) -> list[TokenType]:
@@ -19,7 +19,8 @@ def test_comment_only_line_emits_nothing() -> None:
 
 
 def test_tokens_are_line_terminated() -> None:
-    assert types("health 80\nvision 6") == [
+    result = scan("health 80\nvision 6")
+    assert [token.type for token in result.tokens] == [
         TokenType.IDENT,
         TokenType.INT,
         TokenType.NEWLINE,
@@ -27,6 +28,10 @@ def test_tokens_are_line_terminated() -> None:
         TokenType.INT,
         TokenType.NEWLINE,
         TokenType.EOF,
+    ]
+    assert result.tokens[-2:] == [
+        Token(TokenType.NEWLINE, "", None, 2),
+        Token(TokenType.EOF, "", None, 2),
     ]
 
 
@@ -192,8 +197,12 @@ def test_label_and_goto_scan() -> None:
 
 
 def test_several_lexical_errors_are_all_reported() -> None:
-    result = scan("health 80 @ 1\nvision 6 !\nlifespan 300 $\n")
-    assert [error.line for error in result.errors] == [1, 2, 3]
+    result = scan("health 80 @ 1\nvision 6 !\nlifespan 300 €\n")
+    assert [(error.line, error.message, error.code) for error in result.errors] == [
+        (1, "carácter inesperado '@'", "LEXICAL"),
+        (2, "carácter inesperado '!'", "LEXICAL"),
+        (3, "carácter inesperado '€'", "LEXICAL"),
+    ]
     assert [token.type for token in result.tokens] == [TokenType.EOF]
 
 

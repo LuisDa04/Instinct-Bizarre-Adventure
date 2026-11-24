@@ -15,9 +15,20 @@ KEYWORDS: dict[str, TokenType] = {
     "not": TokenType.NOT,
 }
 
+_DIGITS = frozenset("0123456789")
+_IDENT = frozenset("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_")
 _WHITESPACE = " \t\r"
-_DIGITS = "0123456789"
-_LETTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+_SIMPLE: dict[str, TokenType] = {
+    "(": TokenType.LPAREN,
+    ")": TokenType.RPAREN,
+    ",": TokenType.COMMA,
+    ":": TokenType.COLON,
+    "+": TokenType.PLUS,
+    "-": TokenType.MINUS,
+    "*": TokenType.STAR,
+    "/": TokenType.SLASH,
+    "%": TokenType.PERCENT,
+}
 
 
 @dataclass(frozen=True)
@@ -53,197 +64,129 @@ class Scanner:
     def scan(self) -> ScanResult:
         """Recorre el texto y devuelve tokens con errores acumulados.
 
+        El cursor, la línea y las listas se mantienen en variables locales
+        durante el barrido; las rebanadas del fuente evitan construir listas
+        de caracteres y el despacho de puntuación simple es directo.
+
         Returns:
             Resultado con la lista de tokens (terminada en EOF) y los errores.
         """
-        while not self._at_end():
-            char = self._advance()
+        source = self._source
+        tokens = self._tokens
+        errors = self._errors
+        append_token = tokens.append
+        append_error = errors.append
+        token_type = TokenType
+        index = self._index
+        length = len(source)
+        line = self._line
+        line_start = self._line_start
+        line_has_tokens = self._line_has_tokens
+
+        def fail(message: str, error_line: int | None = None) -> None:
+            """Registra un error, descarta la línea y salta hasta su fin."""
+            nonlocal index, line_has_tokens
+            append_error(LexError(line if error_line is None else error_line, message))
+            del tokens[line_start:]
+            line_has_tokens = False
+            while index < length and source[index] != "\n":
+                index += 1
+
+        while index < length:
+            char = source[index]
+            index += 1
+
             if char == "\n":
-                self._end_line()
-            elif char in _WHITESPACE:
+                if line_has_tokens:
+                    append_token(Token(token_type.NEWLINE, "", None, line))
+                line_has_tokens = False
+                line_start = len(tokens)
+                line += 1
                 continue
-            elif char == "#":
-                self._skip_comment()
-            else:
-                self._scan_token(char)
-        if self._line_has_tokens:
-            self._add(TokenType.NEWLINE, "")
-        self._tokens.append(Token(TokenType.EOF, "", None, self._line))
-        return ScanResult(self._tokens, self._errors)
+            if char in _WHITESPACE:
+                continue
+            if char == "#":
+                while index < length and source[index] != "\n":
+                    index += 1
+                continue
 
-    def _scan_token(self, char: str) -> None:
-        """Clasifica un carácter inicial y emite el token correspondiente.
+            if char in _DIGITS:
+                start = index - 1
+                while index < length and source[index] in _DIGITS:
+                    index += 1
+                text = source[start:index]
+                append_token(Token(token_type.INT, text, int(text), line))
+                line_has_tokens = True
+                continue
+            if char in _IDENT:
+                start = index - 1
+                while index < length and source[index] in _IDENT:
+                    index += 1
+                text = source[start:index]
+                append_token(Token(KEYWORDS.get(text, token_type.IDENT), text, None, line))
+                line_has_tokens = True
+                continue
+            if char == '"':
+                start_line = line
+                start = index
+                while index < length and source[index] != '"' and source[index] != "\n":
+                    index += 1
+                if index >= length or source[index] == "\n":
+                    fail("literal de texto sin cerrar", start_line)
+                    continue
+                value = source[start:index]
+                index += 1
+                append_token(Token(token_type.TEXT, '"' + value + '"', value, start_line))
+                line_has_tokens = True
+                continue
 
-        Args:
-            char: Primer carácter del posible token ya consumido.
-        """
-        if char in _DIGITS:
-            self._scan_number(char)
-        elif char in _LETTERS or char == "_":
-            self._scan_identifier(char)
-        elif char == '"':
-            self._scan_text()
-            return
-        elif char == "(":
-            self._add(TokenType.LPAREN, char)
-        elif char == ")":
-            self._add(TokenType.RPAREN, char)
-        elif char == ",":
-            self._add(TokenType.COMMA, char)
-        elif char == ":":
-            self._add(TokenType.COLON, char)
-        elif char == "+":
-            self._add(TokenType.PLUS, char)
-        elif char == "-":
-            self._add(TokenType.MINUS, char)
-        elif char == "*":
-            self._add(TokenType.STAR, char)
-        elif char == "/":
-            self._add(TokenType.SLASH, char)
-        elif char == "%":
-            self._add(TokenType.PERCENT, char)
-        elif char == "=":
-            if self._match("="):
-                self._add(TokenType.EQUAL_EQUAL, "==")
-            else:
-                self._add(TokenType.EQUAL, "=")
-        elif char == "!":
-            if self._match("="):
-                self._add(TokenType.BANG_EQUAL, "!=")
-            else:
-                self._error("carácter inesperado '!'")
-        elif char == "<":
-            if self._match("="):
-                self._add(TokenType.LESS_EQUAL, "<=")
-            else:
-                self._add(TokenType.LESS, "<")
-        elif char == ">":
-            if self._match("="):
-                self._add(TokenType.GREATER_EQUAL, ">=")
-            else:
-                self._add(TokenType.GREATER, ">")
-        else:
-            self._error(f"carácter inesperado {char!r}")
+            simple = _SIMPLE.get(char)
+            if simple is not None:
+                append_token(Token(simple, char, None, line))
+                line_has_tokens = True
+                continue
+            if char == "=":
+                if index < length and source[index] == "=":
+                    index += 1
+                    append_token(Token(token_type.EQUAL_EQUAL, "==", None, line))
+                else:
+                    append_token(Token(token_type.EQUAL, "=", None, line))
+                line_has_tokens = True
+                continue
+            if char == "!":
+                if index < length and source[index] == "=":
+                    index += 1
+                    append_token(Token(token_type.BANG_EQUAL, "!=", None, line))
+                else:
+                    fail("carácter inesperado '!'")
+                continue
+            if char == "<":
+                if index < length and source[index] == "=":
+                    index += 1
+                    append_token(Token(token_type.LESS_EQUAL, "<=", None, line))
+                else:
+                    append_token(Token(token_type.LESS, "<", None, line))
+                line_has_tokens = True
+                continue
+            if char == ">":
+                if index < length and source[index] == "=":
+                    index += 1
+                    append_token(Token(token_type.GREATER_EQUAL, ">=", None, line))
+                else:
+                    append_token(Token(token_type.GREATER, ">", None, line))
+                line_has_tokens = True
+                continue
+            fail(f"carácter inesperado {char!r}")
 
-    def _scan_number(self, first: str) -> None:
-        """Consume un entero decimal y emite un token INT.
+        if line_has_tokens:
+            append_token(Token(token_type.NEWLINE, "", None, line))
+        append_token(Token(token_type.EOF, "", None, line))
 
-        Args:
-            first: Primer dígito ya consumido del número.
-        """
-        lexeme = [first]
-        while not self._at_end() and self._peek() in _DIGITS:
-            lexeme.append(self._advance())
-        text = "".join(lexeme)
-        self._add(TokenType.INT, text, int(text))
-
-    def _scan_identifier(self, first: str) -> None:
-        """Consume un identificador o palabra clave y emite su token.
-
-        Args:
-            first: Primera letra o guion bajo ya consumido.
-        """
-        lexeme = [first]
-        while not self._at_end() and (self._peek() in _LETTERS or self._peek() in _DIGITS or self._peek() == "_"):
-            lexeme.append(self._advance())
-        text = "".join(lexeme)
-        self._add(KEYWORDS.get(text, TokenType.IDENT), text)
-
-    def _scan_text(self) -> None:
-        """Consume un literal entre comillas en una sola línea o registra error."""
-        start_line = self._line
-        value: list[str] = []
-        while not self._at_end() and self._peek() not in ('"', "\n"):
-            value.append(self._advance())
-        if self._at_end() or self._peek() == "\n":
-            self._error("literal de texto sin cerrar", start_line)
-            return
-        self._advance()
-        self._add(TokenType.TEXT, '"' + "".join(value) + '"', "".join(value), line=start_line)
-
-    def _skip_comment(self) -> None:
-        """Descarta caracteres hasta el salto de línea sin emitir tokens."""
-        while not self._at_end() and self._peek() != "\n":
-            self._advance()
-
-    def _end_line(self) -> None:
-        """Cierra la línea lógica emitiendo NEWLINE solo si hubo tokens."""
-        if self._line_has_tokens:
-            self._add(TokenType.NEWLINE, "")
-        self._line_has_tokens = False
-        self._line_start = len(self._tokens)
-        self._line += 1
-
-    def _add(
-        self,
-        type_: TokenType,
-        lexeme: str,
-        literal: object | None = None,
-        line: int | None = None,
-    ) -> None:
-        """Añade un token marcando la línea actual como no vacía.
-
-        Args:
-            type_: Tipo del token a emitir.
-            lexeme: Texto original del token.
-            literal: Valor convertido o None si no aplica.
-            line: Línea a usar o None para usar la actual.
-        """
-        self._tokens.append(Token(type_, lexeme, literal, self._line if line is None else line))
-        self._line_has_tokens = True
-
-    def _error(self, message: str, line: int | None = None) -> None:
-        """Registra un error léxico, descarta la línea y salta hasta su fin.
-
-        Args:
-            message: Descripción del fallo sin prefijo de línea.
-            line: Línea a usar o None para usar la actual.
-        """
-        self._errors.append(LexError(self._line if line is None else line, message))
-        del self._tokens[self._line_start:]
-        self._line_has_tokens = False
-        while not self._at_end() and self._peek() != "\n":
-            self._advance()
-
-    def _at_end(self) -> bool:
-        """Indica si se consumió todo el texto fuente.
-
-        Returns:
-            True cuando el cursor alcanzó el final del texto.
-        """
-        return self._index >= len(self._source)
-
-    def _peek(self) -> str:
-        """Devuelve el carácter actual sin consumirlo.
-
-        Returns:
-            Carácter bajo el cursor sin avanzar la posición.
-        """
-        return self._source[self._index]
-
-    def _advance(self) -> str:
-        """Consume y devuelve el carácter actual avanzando el cursor.
-
-        Returns:
-            Carácter consumido en esta llamada.
-        """
-        char = self._source[self._index]
-        self._index += 1
-        return char
-
-    def _match(self, expected: str) -> bool:
-        """Consume el carácter esperado si coincide con el actual.
-
-        Args:
-            expected: Carácter que se espera encontrar bajo el cursor.
-
-        Returns:
-            True si coincidió y se consumió, False en caso contrario.
-        """
-        if self._at_end() or self._source[self._index] != expected:
-            return False
-        self._index += 1
-        return True
+        self._index = index
+        self._line = line
+        self._line_start = line_start
+        self._line_has_tokens = line_has_tokens
+        return ScanResult(tokens, errors)
 
 
 def scan(source: str) -> ScanResult:
