@@ -28,13 +28,14 @@ from .view import View
 # Editor opcional (requiere PyQt6 instalado)
 try:
     from PyQt6.QtWidgets import QApplication, QMainWindow
-    from instinct.ui.editor import EditorWidget
+    from instinct.ui.editor import EditorWidget, EditorWindow
 
     _HAS_QT = True
 except ImportError:
     QApplication = None  # type: ignore
     QMainWindow = None  # type: ignore
     EditorWidget = None  # type: ignore
+    EditorWindow = None  # type: ignore
     _HAS_QT = False
 
 
@@ -71,7 +72,7 @@ class App:
         if _HAS_QT:
             self._qt_app = QApplication.instance() or QApplication([])
             self._editor_widget = EditorWidget(self.session)
-            self._editor_window = QMainWindow()
+            self._editor_window = EditorWindow()
             self._editor_window.setCentralWidget(self._editor_widget)
             self._editor_window.setWindowTitle("Instinct - Editor de código")
             self._editor_window.resize(600, 700)
@@ -86,6 +87,9 @@ class App:
             # 1. Eventos Pygame
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
+                    if not self._request_quit():
+                        continue
+                    self._shutdown_editor()
                     self._running = False
                     continue
                 for action in self.controls.handle(event, self.view.hotspots):
@@ -103,6 +107,7 @@ class App:
             pygame.display.flip()
             self.clock.tick(TARGET_FPS)
 
+        self._shutdown_editor()
         pygame.quit()
 
     # ------------------------------------------------------------------
@@ -127,7 +132,9 @@ class App:
         """Aplica sobre la sesión una acción producida por los controles."""
         session = self.session
         if action.type == "quit":
-            self._running = False
+            if self._request_quit():
+                self._shutdown_editor()
+                self._running = False
         elif action.type == "map":
             session.select_map(action.value)
             self._center_camera()
@@ -175,6 +182,21 @@ class App:
         state.camera_y = (grid_h - state.world.height * state.tile_size) // 2
 
     # ------------------------------------------------------------------
+    # Salida
+    # ------------------------------------------------------------------
+
+    def _request_quit(self) -> bool:
+        """Pide al editor que confirme la salida; False si el usuario cancela."""
+        if self._editor_widget is None:
+            return True
+        return self._editor_widget.confirm_close()
+
+    def _shutdown_editor(self) -> None:
+        """Detiene los recursos del editor; puede llamarse varias veces."""
+        if self._editor_widget is not None:
+            self._editor_widget.shutdown()
+
+    # ------------------------------------------------------------------
     # Acciones del editor
     # ------------------------------------------------------------------
 
@@ -207,6 +229,8 @@ class App:
                 self._editor_window.show()
                 self._editor_window.raise_()
                 self._editor_window.activateWindow()
+                if self._editor_widget is not None:
+                    self._editor_widget.resume()
 
 
 def main() -> None:
