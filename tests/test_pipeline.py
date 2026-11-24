@@ -97,3 +97,36 @@ def test_load_all_map_dict_keyed_by_name(tmp_path) -> None:
     game_map = loaded.maps["Prueba"]
     assert game_map.width == 2
     assert game_map.height == 2
+
+
+def test_load_all_non_utf8_files_report_and_keep_valid(tmp_path) -> None:
+    terrains, objects, maps, creatures = fill_dirs(tmp_path)
+    bad_files = (
+        (terrains / "z_mal.te", b"terrain \xf1\n"),
+        (objects / "z_mal.ob", b"object \xf1\n"),
+        (maps / "z_mal.map", b"Mapa\n..\xf1\n"),
+        (creatures / "z_mal.ins", b"creature \xf1\n"),
+    )
+    for path, content in bad_files:
+        path.write_bytes(content)
+    loaded = load_all(terrains, objects, maps, creatures)
+    assert [terrain.name for terrain in loaded.registry.terrains] == ["Grass"]
+    assert [obj.name for obj in loaded.registry.objects] == ["Rock"]
+    assert list(loaded.maps) == ["Prueba"]
+    assert list(loaded.creatures) == ["Uruk"]
+    assert [(error.line, error.message, error.path) for error in loaded.load_errors] == [
+        (1, "el archivo no está codificado en UTF-8", str(path))
+        for path, _ in bad_files
+    ]
+
+
+def test_load_all_directory_named_map_is_reported(tmp_path) -> None:
+    terrains, objects, maps, creatures = fill_dirs(tmp_path)
+    bad_path = maps / "bad.map"
+    bad_path.mkdir()
+    loaded = load_all(terrains, objects, maps, creatures)
+    assert list(loaded.maps) == ["Prueba"]
+    assert list(loaded.creatures) == ["Uruk"]
+    assert [(error.line, error.message, error.path) for error in loaded.load_errors] == [
+        (1, "no se pudo leer el archivo", str(bad_path))
+    ]

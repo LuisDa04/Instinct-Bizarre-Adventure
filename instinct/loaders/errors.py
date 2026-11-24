@@ -28,6 +28,27 @@ class LoadError(CompileError):
             self.code = code
 
 
+def read_source(path: Path) -> tuple[str | None, LoadError | None]:
+    """Lee un fichero como UTF-8 devolviendo su texto o un error con la ruta.
+
+    Los fallos de lectura y decodificación no se propagan: cada archivo se
+    informa por separado para que el resto de la carga continúe.
+
+    Args:
+        path: Ruta del fichero a leer.
+
+    Returns:
+        Tupla (texto, error): el texto y None si la lectura funciona; None y
+        un LoadError de línea 1 con la ruta si el archivo es ilegible.
+    """
+    try:
+        return path.read_text(encoding="utf-8"), None
+    except UnicodeDecodeError:
+        return None, LoadError(1, "el archivo no está codificado en UTF-8", str(path))
+    except OSError:
+        return None, LoadError(1, "no se pudo leer el archivo", str(path))
+
+
 def tag_errors(errors: list[LoadError], path: Path) -> list[LoadError]:
     """Etiqueta cada error con la ruta del fichero que lo produjo.
 

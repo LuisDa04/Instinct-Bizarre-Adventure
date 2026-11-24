@@ -39,8 +39,9 @@ def load_all(
 ) -> LoadedWorld:
     """Carga todo el contenido del juego en orden: .te → .ob → .map → .ins.
 
-    Cada paso tolera fallos parciales: lo que carga bien queda disponible
-    y lo que falla se acumula en load_errors sin romper los demás pasos.
+    La carga es tolerante por archivo: lo que carga bien queda disponible
+    y cada archivo que falla aporta un error a load_errors sin romper los
+    demás pasos.
 
     Args:
         terrains_dir: Carpeta con ficheros *.te.

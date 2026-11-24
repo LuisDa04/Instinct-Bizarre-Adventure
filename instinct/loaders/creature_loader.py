@@ -7,7 +7,7 @@ from ..compiler.errors import CompileError
 from ..compiler.lexer import scan
 from ..compiler.parser import parse
 from ..compiler.semantic import ResolvedProgram, resolve
-from .errors import LoadError, tag_errors
+from .errors import LoadError, read_source, tag_errors
 from dataclasses import dataclass
 
 
@@ -61,8 +61,10 @@ def load_creatures(
     """Carga todos los .ins de una carpeta y devuelve los válidos y los errores.
 
     Recorre la carpeta en orden alfabético, conserva lo válido y acumula los
-    errores etiquetados con su ruta. Una criatura cuyo nombre ya fue declarado
-    por otro archivo se rechaza con un error en vez de sobrescribir.
+    errores etiquetados con su ruta. La carga es tolerante por archivo: uno
+    ilegible se reporta y no impide cargar los demás. Una criatura cuyo nombre
+    ya fue declarado por otro archivo se rechaza con un error en vez de
+    sobrescribir.
 
     Args:
         creatures_dir: Carpeta con ficheros *.ins.
@@ -73,7 +75,12 @@ def load_creatures(
     creatures: dict[str, ResolvedProgram] = {}
     errors: list[LoadError] = []
     for path in sorted(creatures_dir.glob("*.ins")):
-        result = load_creature(path.read_text(encoding="utf-8"))
+        source, read_error = read_source(path)
+        if read_error is not None:
+            errors.append(read_error)
+            continue
+        assert source is not None
+        result = load_creature(source)
         errors.extend(tag_errors(result.errors, path))
         if result.creature is None:
             continue
