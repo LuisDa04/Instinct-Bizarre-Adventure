@@ -6,7 +6,7 @@ from pathlib import Path
 
 from ..world.entities import Terrain, WorldObject
 from ..world.world import World
-from .errors import LoadError, tag_errors
+from .errors import LoadError, read_source, tag_errors
 from .registry import Registry
 
 
@@ -168,21 +168,39 @@ def load_maps(
     """Carga todos los .map de una carpeta y devuelve los válidos y los errores.
 
     Recorre la carpeta en orden alfabético, conserva lo válido y acumula los
-    errores etiquetados con su ruta, igual que load_definitions: un mapa roto
-    no impide cargar el resto, la aplicación sigue funcionando.
+    errores etiquetados con su ruta, igual que load_definitions. La carga es
+    tolerante por archivo: un mapa roto o ilegible no impide cargar el resto.
+    Si dos archivos declaran el mismo nombre, se conserva el que llega primero
+    en orden alfabético y cada archivo posterior aporta un solo error.
 
     Args:
         maps_dir: Carpeta con ficheros *.map.
         registry: Registro de terrenos y objetos ya cargados.
 
     Returns:
-        Tupla (mapas, errores): solo los mapas sin errores entran en la lista.
+        Tupla (mapas, errores): entran los mapas sin errores cuyo nombre no
+        estuviera ya presente, y los errores llevan la ruta de su archivo.
     """
     maps: list[GameMap] = []
     errors: list[LoadError] = []
+    names: set[str] = set()
     for path in sorted(maps_dir.glob("*.map")):
-        result = load_map(path.read_text(encoding="utf-8"), registry)
+        source, read_error = read_source(path)
+        if read_error is not None:
+            errors.append(read_error)
+            continue
+        assert source is not None
+        result = load_map(source, registry)
         errors.extend(tag_errors(result.errors, path))
-        if result.map is not None:
-            maps.append(result.map)
+        if result.map is None:
+            continue
+        if result.map.name in names:
+            errors.append(
+                LoadError(
+                    1, f"nombre de mapa duplicado {result.map.name!r}", str(path)
+                )
+            )
+            continue
+        names.add(result.map.name)
+        maps.append(result.map)
     return maps, errors

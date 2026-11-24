@@ -1,6 +1,8 @@
 """Pruebas del pipeline: cadena de carga completa con fallo parcial."""
 from __future__ import annotations
 
+from pathlib import Path
+
 from instinct.loaders.pipeline import LoadedWorld, load_all
 
 GRASS = "terrain Grass\nchar .\nresource_max 100\nregen 2\n"
@@ -19,6 +21,18 @@ start:
     goto start
 """
 BROKEN_CREATURE = "creature Bad\nfaction x\nhealth 0\nvision 1\nlifespan 10\nstart:\nwait(1)\n"
+
+
+class ReversedGlobDir:
+    """Carpeta simulada que entrega los mapas en orden inverso al alfabético."""
+
+    def __init__(self, real_dir: Path) -> None:
+        """Guarda la carpeta real sobre la que consulta los archivos."""
+        self._real_dir = real_dir
+
+    def glob(self, pattern: str):
+        """Devuelve los archivos en orden inverso al de la carpeta real."""
+        return reversed(sorted(self._real_dir.glob(pattern)))
 
 
 def fill_dirs(tmp_path, *, grass=True, rock=True, game_map=True,
@@ -97,6 +111,22 @@ def test_load_all_map_dict_keyed_by_name(tmp_path) -> None:
     game_map = loaded.maps["Prueba"]
     assert game_map.width == 2
     assert game_map.height == 2
+
+
+def test_load_all_duplicate_map_keeps_first_and_reports_second(tmp_path) -> None:
+    terrains, objects, maps, creatures = fill_dirs(tmp_path, game_map=False)
+    # Se escribe primero el archivo que va después en orden alfabético.
+    duplicate = maps / "z_mapa.map"
+    duplicate.write_text("Prueba\n##\n", encoding="utf-8")
+    (maps / "mapa.map").write_text(MAP, encoding="utf-8")
+    loaded = load_all(terrains, objects, ReversedGlobDir(maps), creatures)
+    assert list(loaded.maps) == ["Prueba"]
+    survivor = loaded.maps["Prueba"]
+    assert survivor.cells[0][0].object is None
+    assert list(loaded.creatures) == ["Uruk"]
+    assert [(error.line, error.message, error.path) for error in loaded.load_errors] == [
+        (1, "nombre de mapa duplicado 'Prueba'", str(duplicate))
+    ]
 
 
 def test_load_all_non_utf8_files_report_and_keep_valid(tmp_path) -> None:
