@@ -89,7 +89,7 @@ def name_at(args: list[int | str], creature: Creature, world: World, line: int) 
         return found.name
     ground = world.terrain_at(x, y)
     if ground is None:
-        raise RuntimeError(f"Casilla ({x},{y}) sin terreno")
+        raise ExecutionError(line, f"Casilla ({x},{y}) sin terreno")
     return ground.name
 
 

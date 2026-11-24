@@ -29,7 +29,8 @@ class Attack(Action):
         Args:
             ctx: Mundo, motor y criatura que golpea.
             args: [dx, dy, damage] ya validados.
+            line: Línea (1-based) de la llamada para el mensaje de error.
         """
-        target = attacked_entity(ctx, args[0], args[1])
+        target = attacked_entity(ctx, args[0], args[1], line)
         if target is not None:
             strike(ctx, target, args[2])
