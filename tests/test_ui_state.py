@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from instinct.sim.cli import SPEEDS
 from instinct.ui.constants import (
-    PHASE_LOADING,
+    PHASE_NO_MAPS,
     PHASE_PLACEMENT,
 )
 from instinct.ui.state import UIState
@@ -11,7 +11,7 @@ from instinct.ui.state import UIState
 
 def test_defaults() -> None:
     state = UIState()
-    assert state.phase == PHASE_LOADING
+    assert state.phase == PHASE_NO_MAPS
     assert state.tile_size == 32
     assert state.seed == 42
     assert state.speed_tps == SPEEDS[0]

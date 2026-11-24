@@ -89,11 +89,11 @@ def render(state, size=(1280, 800)):
     return view
 
 
-def test_render_loading_without_world() -> None:
+def test_render_initial_state_without_world() -> None:
     from instinct.ui.state import UIState
 
     view = render(UIState())
-    assert view.hotspots == {}
+    assert set(view.hotspots) == {"quit"}
 
 
 def test_render_map_select_lists_maps(session: Session) -> None:
