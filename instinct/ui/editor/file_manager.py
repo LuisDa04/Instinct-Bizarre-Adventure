@@ -98,15 +98,18 @@ class FileManager:
     def save_as(self, path: Path) -> None:
         """Guarda la pestaña actual en una nueva ruta.
 
+        La ruta solo se adopta después de escribir: si la escritura falla,
+        la pestaña conserva su ruta anterior y sigue sucia.
+
         Args:
             path: Nueva ruta donde guardar el archivo.
         """
         tab = self.current_tab
         if tab is None:
             return
+        path.write_text(tab.content, encoding="utf-8")
         tab.path = path
-        tab.content = tab.content  # fuerza re-escritura
-        self.save_current()
+        tab.dirty = False
 
     # ------------------------------------------------------------------
     # Cerrar pestañas
@@ -119,21 +122,67 @@ class FileManager:
             index: Índice de la pestaña a cerrar.
 
         Returns:
-            True si se cerró correctamente, False si la pestaña está sucia
-            (el llamador debe preguntar al usuario primero).
+            True si se cerró correctamente, False si el índice no existe o
+            la pestaña está sucia (el llamador debe preguntar al usuario).
         """
         if not (0 <= index < len(self._tabs)):
             return False
-        if self._tabs[index].dirty:
+        return self.close_tab_for(self._tabs[index])
+
+    def close_tab_for(self, tab: EditorTab) -> bool:
+        """Cierra una pestaña concreta identificada por objeto.
+
+        Args:
+            tab: Pestaña que se desea cerrar.
+
+        Returns:
+            True si se cerró correctamente, False si no pertenece al gestor
+            o si está sucia.
+        """
+        index = self._index_of(tab)
+        if index < 0 or tab.dirty:
             return False
+        current = self.current_tab
         self._tabs.pop(index)
-        if self._current >= index:
-            self._current = max(0, self._current - 1)
+        if current is tab:
+            self._current = min(index, len(self._tabs) - 1)
+        elif current is not None:
+            self._current = self._index_of(current)
+        else:
+            self._current = -1
         return True
+
+    # ------------------------------------------------------------------
+    # Reordenación
+    # ------------------------------------------------------------------
+
+    def move_tab(self, from_index: int, to_index: int) -> None:
+        """Reordena una pestaña conservando la actual por identidad.
+
+        Args:
+            from_index: Posición original de la pestaña.
+            to_index: Posición de destino tras el movimiento.
+        """
+        if not (0 <= from_index < len(self._tabs)):
+            return
+        if not (0 <= to_index < len(self._tabs)):
+            return
+        current = self.current_tab
+        tab = self._tabs.pop(from_index)
+        self._tabs.insert(to_index, tab)
+        if current is not None:
+            self._current = self._index_of(current)
 
     # ------------------------------------------------------------------
     # Consultas
     # ------------------------------------------------------------------
+
+    def _index_of(self, tab: EditorTab) -> int:
+        """Devuelve el índice de una pestaña comparando identidad."""
+        for index, candidate in enumerate(self._tabs):
+            if candidate is tab:
+                return index
+        return -1
 
     @property
     def current_tab(self) -> Optional[EditorTab]:

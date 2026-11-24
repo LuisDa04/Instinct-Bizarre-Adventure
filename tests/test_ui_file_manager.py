@@ -3,6 +3,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from instinct.ui.editor.file_manager import FileManager, EditorTab
 
 
@@ -73,6 +75,30 @@ def test_file_manager_save_as(tmp_path) -> None:
     assert tab.dirty is False
 
 
+def test_save_as_failure_keeps_old_path(tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Un fallo al escribir no cambia la ruta ni limpia la pestaña."""
+    fm = FileManager()
+    old_path = _make_file(tmp_path, "original.ins")
+    fm.open_file(old_path)
+    tab = fm.current_tab
+    assert tab is not None
+    tab.content = "contenido modificado\n"
+    tab.dirty = True
+
+    def _fail_write(*args, **kwargs) -> None:
+        raise OSError("disco de solo lectura")
+
+    monkeypatch.setattr(Path, "write_text", _fail_write)
+    new_path = tmp_path / "nuevo.ins"
+
+    with pytest.raises(OSError):
+        fm.save_as(new_path)
+
+    assert tab.path == old_path
+    assert tab.dirty is True
+    assert not new_path.exists()
+
+
 def test_file_manager_close_tab() -> None:
     """Se pueden cerrar pestañas limpias."""
     fm = FileManager()
@@ -93,3 +119,107 @@ def test_file_manager_close_dirty_tab_refused() -> None:
     tab.dirty = True
     assert fm.close_tab(0) is False
     assert len(fm.tabs) == 1
+
+
+def _make_file(tmp_path: Path, name: str) -> Path:
+    """Crea un archivo temporal con el nombre indicado."""
+    path = tmp_path / name
+    path.write_text(f"contenido de {name}\n", encoding="utf-8")
+    return path
+
+
+def test_file_manager_move_tab_reorders(tmp_path) -> None:
+    """move_tab reordena las pestañas como lo hace el widget."""
+    fm = FileManager()
+    for name in ("a.ins", "b.ins", "c.ins"):
+        fm.open_file(_make_file(tmp_path, name))
+    before = list(fm.tabs)
+
+    fm.move_tab(0, 2)
+
+    assert [tab.name for tab in fm.tabs] == ["b.ins", "c.ins", "a.ins"]
+    assert fm.tabs[0] is before[1]
+    assert fm.tabs[1] is before[2]
+    assert fm.tabs[2] is before[0]
+
+
+def test_file_manager_move_tab_preserves_current_identity(tmp_path) -> None:
+    """La pestaña actual se conserva por identidad, no por posición."""
+    fm = FileManager()
+    for name in ("a.ins", "b.ins", "c.ins"):
+        fm.open_file(_make_file(tmp_path, name))
+    current = fm.tabs[1]
+    fm.set_current_index(1)
+
+    fm.move_tab(0, 2)
+
+    assert fm.current_tab is current
+    assert fm.current_index == 0
+
+
+def test_file_manager_move_tab_out_of_range_is_noop(tmp_path) -> None:
+    """Un movimiento fuera de rango no altera el orden ni la pestaña actual."""
+    fm = FileManager()
+    for name in ("a.ins", "b.ins"):
+        fm.open_file(_make_file(tmp_path, name))
+    before = list(fm.tabs)
+    current = fm.current_tab
+
+    fm.move_tab(-1, 0)
+    fm.move_tab(0, 2)
+    fm.move_tab(2, 0)
+
+    assert fm.tabs == before
+    assert fm.current_tab is current
+    assert fm.current_index == 1
+
+
+def test_file_manager_close_tab_for_closes_by_identity(tmp_path) -> None:
+    """close_tab_for cierra exactamente la pestaña indicada."""
+    fm = FileManager()
+    for name in ("a.ins", "b.ins", "c.ins"):
+        fm.open_file(_make_file(tmp_path, name))
+    target = fm.tabs[1]
+    current = fm.tabs[2]
+    fm.set_current_index(2)
+
+    assert fm.close_tab_for(target) is True
+
+    assert [tab.name for tab in fm.tabs] == ["a.ins", "c.ins"]
+    assert fm.current_tab is current
+    assert fm.current_index == 1
+
+
+def test_file_manager_close_tab_for_dirty_refused(tmp_path) -> None:
+    """close_tab_for respeta la protección de pestañas sucias."""
+    fm = FileManager()
+    fm.open_file(_make_file(tmp_path, "a.ins"))
+    tab = fm.tabs[0]
+    tab.dirty = True
+
+    assert fm.close_tab_for(tab) is False
+    assert fm.tabs == [tab]
+
+
+def test_file_manager_close_tab_for_unknown_tab_is_noop() -> None:
+    """Una pestaña que no pertenece al gestor no cierra nada."""
+    fm = FileManager()
+    fm.new_tab()
+    known = fm.tabs[0]
+
+    assert fm.close_tab_for(EditorTab()) is False
+    assert fm.tabs == [known]
+
+
+def test_file_manager_close_current_tab_selects_neighbor(tmp_path) -> None:
+    """Al cerrar la pestaña actual queda seleccionada la vecina."""
+    fm = FileManager()
+    for name in ("a.ins", "b.ins"):
+        fm.open_file(_make_file(tmp_path, name))
+    fm.set_current_index(0)
+
+    assert fm.close_tab_for(fm.tabs[0]) is True
+
+    assert fm.current_index == 0
+    assert fm.current_tab is not None
+    assert fm.current_tab.name == "b.ins"
