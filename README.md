@@ -31,7 +31,6 @@ Simulador de criaturas programables inspirado en *JoJo's Bizarre Adventure*. Imp
 ### Interfaces
 | Interfaz | Descripción |
 |----------|-------------|
-| **CLI** (`python -m instinct.sim.cli`) | Terminal interactiva: carga → mapa → colocación → simulación (play/paso/velocidades/reset) |
 | **GUI** (`python -m instinct.ui`) | Pygame: grid renderizado, panel lateral, logs coloreados, 5 velocidades, semilla visible + repetir |
 | **Editor** (`F4` en GUI) | Editor `.ins` con pestañas, resaltado, autocompletado, linting tiempo real, hot-reload (Ctrl+R) |
 
@@ -60,8 +59,7 @@ instinct/
 │   ├── creature_loader.py, map_loader.py, terrain_loader.py, object_loader.py
 │   └── registry.py    # Registro único de chars (invarianza I14)
 ├── sim/
-│   ├── engine.py      # Engine: tick loop, orden aleatorio, leyes E1-E4, rugidos
-│   └── cli.py         # CLI interactiva
+│   └── engine.py      # Engine: tick loop, orden aleatorio, leyes E1-E4, rugidos
 ├── ui/                # Interfaces
 │   ├── app.py         # Pygame loop 60fps, ventana + editor Qt (F4)
 │   ├── view.py        # Render grid, panels, logs, HUD
@@ -102,13 +100,6 @@ pip install PyQt6
 ---
 
 ## ▶️ Ejecución
-
-### CLI (Terminal)
-```bash
-# Desde raíz del proyecto
-python -m instinct.sim.cli
-```
-Flujo: carga → elige mapa → coloca criaturas (`place especie x y`) → `done` → comandos: `Enter`=1 tick, `run N`, `speed 1-4`, `grid`, `logs`, `reset`, `quit`.
 
 ### GUI + Editor (Pygame + PyQt6)
 ```bash
@@ -151,7 +142,7 @@ python -m pytest tests/test_ui_*.py -v
 ```
 
 **Cobertura**: tests por capas: scanner, parser, resolver, world, loaders,
-map_loader, creature_loader, pipeline, engine, interpreter, actions, cli, content,
+map_loader, creature_loader, pipeline, engine, interpreter, actions, content,
 acceptance, scaffold, layering y ui (state, session, assets, view, controls, app, editor,
 file_manager, hot_reload, linter, completer, highlighter, compiler_bridge, imports).
 
