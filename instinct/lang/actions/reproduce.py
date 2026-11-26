@@ -5,6 +5,7 @@ from __future__ import annotations
 from instinct.world.entities import Creature
 
 from .base import Action, ActionContext
+from ..errors import ExecutionError
 
 
 class Reproduce(Action):
@@ -34,6 +35,7 @@ class Reproduce(Action):
         Args:
             ctx: Mundo, motor y madre.
             args: [dx, dy, health] ya validados.
+            line: Línea (1-based) de la llamada para el mensaje de error.
         """
         dx, dy, health = args
         if dx == 0 and dy == 0:
@@ -49,5 +51,7 @@ class Reproduce(Action):
         child = Creature(ctx.creature.program)
         child.health = health
         if not ctx.world.place_creature(x, y, child):
-            raise RuntimeError(f"Reproducción fallida: no se pudo colocar cría en ({x},{y})")
+            raise ExecutionError(
+                line, f"Reproducción fallida: no se pudo colocar cría en ({x},{y})"
+            )
         ctx.engine.queue_newborn(child)

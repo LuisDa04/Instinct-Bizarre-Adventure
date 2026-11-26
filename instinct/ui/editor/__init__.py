@@ -16,6 +16,7 @@ __all__ = [
     "FileManager",
     "EditorTab",
     "EditorWidget",
+    "EditorWindow",
 ]
 
 
@@ -39,4 +40,7 @@ def __getattr__(name: str):
     if name == "EditorWidget":
         from .editor_widget import EditorWidget
         return EditorWidget
+    if name == "EditorWindow":
+        from .window import EditorWindow
+        return EditorWindow
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

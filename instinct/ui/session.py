@@ -1,7 +1,7 @@
 """Sesión de la interfaz: acciones del usuario ejecutadas sobre el CLI."""
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 from instinct.sim.cli import CLI, SPEEDS
@@ -78,9 +78,9 @@ class Session:
         Returns:
             Mensaje del CLI; si el mapa no existe la fase no cambia.
         """
+        if name not in self._cli.map_names():
+            return self._cli.select_map(name)
         message = self._cli.select_map(name)
-        if "no existe" in message:
-            return message
         self.state.map_name = name
         self.state.world = self._cli.world
         self.state.engine = self._cli.engine
@@ -126,7 +126,8 @@ class Session:
         elif self.state.placement_species is not None:
             species = self.state.placement_species
             message = self._cli.place_creature(species, x, y)
-            if "colocada" in message:
+            placed_creature = self.state.world.creature_at(x, y)
+            if placed_creature is not None and placed_creature.name == species:
                 self._placements.append((species, x, y))
         else:
             return
@@ -212,8 +213,9 @@ class Session:
         seed = self._seed_from_input()
         cli = CLI(self._base_dir, seed=seed)
         cli.loaded = self._cli.loaded
-        message = cli.select_map(self.state.map_name or "")
-        if "no existe" in message:
+        map_name = self.state.map_name or ""
+        message = cli.select_map(map_name)
+        if map_name not in cli.map_names():
             self.state.messages.append(message)
             return
         for species, x, y in self._placements:
@@ -249,14 +251,21 @@ class Session:
         digits = self.state.seed_input.strip()
         return int(digits) if digits.isdigit() else self.state.seed
 
-    def reload_from_source(self, source: str) -> ReloadResult:
+    def reload_from_source(
+        self, source: str, expected_name: str | None = None
+    ) -> ReloadResult:
         """Recompila y recarga una criatura usando el nombre de su cabecera.
 
         Args:
             source: Texto completo del .ins a compilar.
+            expected_name: Nombre que se esperaba según el archivo recargado.
+                Si se da y la cabecera declara otro nombre, se cancela la
+                recarga sin tocar el catálogo ni las criaturas colocadas.
+                La comparación no distingue mayúsculas de minúsculas y el
+                programa se guarda con la clave ya existente del catálogo.
 
         Returns:
-            Resultado con ok, nombre de especie y errores formateados.
+            Resultado con ok, nombre canónico de especie y errores formateados.
         """
         if self._cli.loaded is None:
             return ReloadResult(False, None, ["no hay contenido cargado"])
@@ -267,24 +276,54 @@ class Session:
             return ReloadResult(False, None, errors)
 
         name = result.creature.name
-        self._apply_reload(name, result.creature)
-        return ReloadResult(True, name, [])
+        if expected_name is not None and name.casefold() != expected_name.casefold():
+            message = (
+                f"la cabecera declara {name!r} pero se esperaba "
+                f"{expected_name!r}; recarga cancelada"
+            )
+            return ReloadResult(False, None, [message])
+        canonical_name = self._canonical_species_name(name, expected_name)
+        program = result.creature
+        if program.name != canonical_name:
+            program = replace(program, name=canonical_name)
+        self._apply_reload(canonical_name, program)
+        return ReloadResult(True, canonical_name, [])
+
+    def _canonical_species_name(
+        self, header_name: str, expected_name: str | None
+    ) -> str:
+        """Devuelve la clave cargada que identifica la especie recargada.
+
+        Si la cabecera solo cambia la capitalización, se conserva la clave ya
+        existente para no duplicar la especie y para que las criaturas colocadas
+        sigan coincidiendo por nombre al recolocarse.
+        """
+        assert self._cli.loaded is not None
+        for candidate in (expected_name, header_name):
+            if candidate is None:
+                continue
+            for key in self._cli.loaded.creatures:
+                if key.casefold() == candidate.casefold():
+                    return key
+        return header_name
 
     def reload_creature(self, name: str, source: str) -> tuple[bool, list[str]]:
         """Recompila y recarga una criatura en la sesión activa.
 
-        Mantiene compatibilidad con la API anterior. El nombre efectivo es el
-        declarado en la cabecera del .ins compilado.
+        Mantiene compatibilidad con la API anterior. Un nombre vacío o un
+        marcador entre ángulos no se considera real y no restringe la cabecera.
 
         Args:
-            name: Nombre de la criatura (especie) a recargar. Se ignora si la
-                cabecera declara otro nombre; se conserva por compatibilidad.
+            name: Nombre de la criatura (especie) a recargar, o marcador.
             source: Texto completo del .ins a compilar.
 
         Returns:
             Tupla (ok, errores). Si ok es False, errores contiene los mensajes.
         """
-        result = self.reload_from_source(source)
+        expected = name.strip()
+        if not expected or (expected.startswith("<") and expected.endswith(">")):
+            expected = None
+        result = self.reload_from_source(source, expected_name=expected)
         return result.ok, result.errors
 
     def _apply_reload(self, name: str, new_program) -> None:
@@ -292,9 +331,9 @@ class Session:
         assert self._cli.loaded is not None
         self._cli.loaded.creatures[name] = new_program
         if self.state.world is not None:
-            self._recolocar_criaturas_especie(name, new_program)
+            self._reload_species_creatures(name, new_program)
 
-    def _recolocar_criaturas_especie(self, name: str, new_program) -> None:
+    def _reload_species_creatures(self, name: str, new_program) -> None:
         """Recarga en sitio todas las criaturas de una especie.
 
         Mantiene su posición, salud, edad, variables y wait_remaining.

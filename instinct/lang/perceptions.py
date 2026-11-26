@@ -20,7 +20,12 @@ Value = int | str
 
 @dataclass(frozen=True)
 class TurnFrame:
-    """Foto congelada de todo lo que una criatura percibe al empezar su turno.
+    """Contexto inmutable en sus campos del turno de una criatura.
+
+    Congela las referencias guardadas, no los objetos: `creature`, `world` y
+    `engine` siguen siendo los vivos y pueden cambiar durante el turno. Los
+    conteos de `sense`, `tick` y los rugidos se toman al empezar el turno; las
+    percepciones dinámicas como `random` se consultan al motor en cada uso.
 
     Attributes:
         creature: Criatura que percibe, por referencia.

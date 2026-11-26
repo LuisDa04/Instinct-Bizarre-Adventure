@@ -34,8 +34,9 @@ class Consume(Action):
         Args:
             ctx: Mundo, motor y criatura que consume.
             args: [dx, dy, damage, heal] ya validados.
+            line: Línea (1-based) de la llamada para el mensaje de error.
         """
-        target = attacked_entity(ctx, args[0], args[1])
+        target = attacked_entity(ctx, args[0], args[1], line)
         if target is None:
             return
         strike(ctx, target, args[2])

@@ -5,9 +5,10 @@ from __future__ import annotations
 from instinct.world.entities import Creature, Entity
 
 from .base import ActionContext
+from ..errors import ExecutionError
 
 
-def attacked_entity(ctx: ActionContext, dx: int, dy: int) -> Entity | None:
+def attacked_entity(ctx: ActionContext, dx: int, dy: int, line: int) -> Entity | None:
     """Devuelve lo que golpea la acción según su dirección.
 
     Con (0, 0) el objetivo es el terreno bajo la propia criatura;
@@ -17,6 +18,7 @@ def attacked_entity(ctx: ActionContext, dx: int, dy: int) -> Entity | None:
         ctx: Mundo, motor y criatura que golpea.
         dx: Desplazamiento de columna en {-1, 0, 1}.
         dy: Desplazamiento de fila en {-1, 0, 1}.
+        line: Línea (1-based) de la acción para el mensaje de error.
 
     Returns:
         La entidad golpeada o None si la casilla cae fuera del mapa.
@@ -25,7 +27,7 @@ def attacked_entity(ctx: ActionContext, dx: int, dy: int) -> Entity | None:
     if dx == 0 and dy == 0:
         terrain = ctx.world.terrain_at(creature.x, creature.y)
         if terrain is None:
-            raise RuntimeError("Criatura sin terreno bajo sus pies")
+            raise ExecutionError(line, "Criatura sin terreno bajo sus pies")
         return terrain
     x, y = creature.x + dx, creature.y + dy
     target = ctx.world.creature_at(x, y)

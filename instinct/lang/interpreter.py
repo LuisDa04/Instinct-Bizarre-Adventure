@@ -49,8 +49,9 @@ class Interpreter:
     def run_turn(self, creature: Creature) -> None:
         """Ejecuta un turno: refresca percepciones y avanza hasta una acción.
 
-        Un error de ejecución es un ictus: la criatura muere en el acto y el
-        mensaje con su línea va al registro.
+        Un error de ejecución o un `RuntimeError` inesperado es un ictus: la
+        criatura muere en el acto y el mensaje va al registro. `ExecutionError`
+        ya incluye su línea; el `RuntimeError` se registra tal cual.
 
         Args:
             creature: Criatura viva y despierta que recibe el turno.
@@ -85,7 +86,7 @@ class Interpreter:
 
                 creature.pc = ctx.pc
 
-        except ExecutionError as error:
+        except (ExecutionError, RuntimeError) as error:
             self._engine.kill(creature)
             if self._log is not None:
                 self._log(f"{creature.name}: {error}")

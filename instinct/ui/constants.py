@@ -7,7 +7,6 @@ DEFAULT_WINDOW_SIZE = (1280, 800)
 TARGET_FPS = 60
 
 # Fases de la aplicación: la sesión avanza en este orden.
-PHASE_LOADING = "loading"
 PHASE_NO_MAPS = "no_maps"
 PHASE_MAP_SELECT = "map_select"
 PHASE_PLACEMENT = "placement"

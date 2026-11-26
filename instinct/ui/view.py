@@ -16,7 +16,6 @@ from .constants import (
     HEALTH_BAR_WARNING_RATIO,
     LOG_HEIGHT,
     PANEL_WIDTH,
-    PHASE_LOADING,
     PHASE_MAP_SELECT,
     PHASE_NO_MAPS,
     PHASE_PLACEMENT,
@@ -25,7 +24,6 @@ from .constants import (
 from .state import UIState
 
 PHASE_LABELS = {
-    PHASE_LOADING: "Cargando",
     PHASE_NO_MAPS: "Sin mapas",
     PHASE_MAP_SELECT: "Elección de mapa",
     PHASE_PLACEMENT: "Colocación",
@@ -60,9 +58,7 @@ class View:
         grid = pygame.Rect(0, 0, width - PANEL_WIDTH, height - LOG_HEIGHT - STATUS_BAR_HEIGHT)
         logs = pygame.Rect(0, grid.height, width - PANEL_WIDTH, LOG_HEIGHT)
 
-        if state.phase == PHASE_LOADING:
-            self._render_loading(screen, state)
-        elif state.phase == PHASE_NO_MAPS:
+        if state.phase == PHASE_NO_MAPS:
             self._render_no_maps(screen, state)
             self._render_panel(screen, panel, state)
         elif state.phase == PHASE_MAP_SELECT:
@@ -265,14 +261,6 @@ class View:
         """Muestra el reporte de carga mientras se elige mapa."""
         self._title(screen, "ELIGE UN MAPA", rect.x + 12, rect.y + 12)
         self._lines(screen, state.load_report.splitlines(), rect.x + 12, rect.y + 48, COLORS["text_dim"])
-
-    def _render_loading(self, screen: pygame.Surface, state: UIState) -> None:
-        """Pantalla de carga con el reporte en cuanto existe."""
-        width, height = screen.get_size()
-        title = self.assets.font_ui.render("Cargando contenido...", True, COLORS["text"])
-        screen.blit(title, title.get_rect(center=(width // 2, height // 2)))
-        if state.load_report:
-            self._lines(screen, state.load_report.splitlines(), 12, height // 2 + 30, COLORS["text_dim"])
 
     def _render_no_maps(self, screen: pygame.Surface, state: UIState) -> None:
         """Aviso de arranque sin mapas con el reporte de lo que falló."""

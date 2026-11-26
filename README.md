@@ -150,8 +150,10 @@ python -m pytest tests/test_interpreter.py -v
 python -m pytest tests/test_ui_*.py -v
 ```
 
-**Cobertura actual**: 370 tests.  
-Categorías: scanner, parser, resolver, world, loaders, map_loader, pipeline, engine, interpreter, actions, cli, ui (state, session, assets, view, controls, app).
+**Cobertura**: tests por capas: scanner, parser, resolver, world, loaders,
+map_loader, creature_loader, pipeline, engine, interpreter, actions, cli, content,
+acceptance, scaffold, layering y ui (state, session, assets, view, controls, app, editor,
+file_manager, hot_reload, linter, completer, highlighter, compiler_bridge, imports).
 
 ---
 

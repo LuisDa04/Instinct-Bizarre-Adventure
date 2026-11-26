@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import pytest
+
 from instinct.compiler.lexer import scan
 from instinct.compiler.parser import parse
 from instinct.compiler.semantic import ResolvedProgram, resolve
+from instinct.lang import perceptions
 from instinct.lang.interpreter import MAX_LINES, Interpreter
 from instinct.sim.engine import Engine
 from instinct.world.entities import Creature, Terrain
@@ -380,3 +383,67 @@ def test_ictus_during_step_counts_death() -> None:
     report = engine.step()
     assert world.creature_at(2, 2) is None
     assert report.deaths == 1
+
+
+def test_invariants_with_line_kill_and_log_as_ictus(monkeypatch: pytest.MonkeyPatch) -> None:
+    cases = [
+        ("    n = name(x + 1, y)\n    wait(1)\n", 3, 2, "Casilla (3,2) sin terreno"),
+        ("    attack(0, 0, 5)\n", 2, 2, "Criatura sin terreno bajo sus pies"),
+        ("    consume(0, 0, 5, 5)\n", 2, 2, "Criatura sin terreno bajo sus pies"),
+    ]
+    for body, x, y, message in cases:
+        world, creature = make_world(compile_body(body))
+        monkeypatch.setattr(world._cells[y][x], "terrain", None)
+        log: list[str] = []
+        turn(world, creature, log=log)
+        assert world.creature_at(2, 2) is None, body
+        assert log == [f"Uruk: línea 7: {message}"], body
+
+
+def test_failed_reproduction_kills_and_logs_with_line(monkeypatch: pytest.MonkeyPatch) -> None:
+    world, mother = make_world(compile_body("    reproduce(1, 0, 20)\n"))
+    monkeypatch.setattr(world, "place_creature", lambda x, y, child: False)
+    log: list[str] = []
+    turn(world, mother, log=log)
+    assert world.creature_at(2, 2) is None
+    assert log == [
+        "Uruk: línea 7: Reproducción fallida: no se pudo colocar cría en (3,2)"
+    ]
+
+
+def test_unexpected_runtime_error_in_turn_kills_and_logs(monkeypatch: pytest.MonkeyPatch) -> None:
+    world, creature = make_world(compile_body("    n = health\n    wait(1)\n"))
+
+    def broken_health(frame: perceptions.TurnFrame) -> int:
+        raise RuntimeError("fallo de percepción")
+
+    monkeypatch.setitem(perceptions.PERCEPTION_RESOLVERS, "health", broken_health)
+    log: list[str] = []
+    turn(world, creature, log=log)
+    assert world.creature_at(2, 2) is None
+    assert log == ["Uruk: fallo de percepción"]
+
+
+def test_unexpected_runtime_error_during_step_leaves_other_creature_alive(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    body = "    n = health\n    wait(1)\n"
+    world, victim = make_world(compile_body(body))
+    survivor = Creature(compile_body(body))
+    assert world.place_creature(4, 4, survivor)
+
+    def health_for(frame: perceptions.TurnFrame) -> int:
+        if frame.creature is victim:
+            raise RuntimeError("fallo de percepción")
+        return frame.creature.health
+
+    monkeypatch.setitem(perceptions.PERCEPTION_RESOLVERS, "health", health_for)
+    log: list[str] = []
+    engine = Engine(world, seed=3)
+    engine.set_turn_runner(Interpreter(world, engine, log=log.append).run_turn)
+    report = engine.step()
+    assert set(report.order) == {(2, 2), (4, 4)}
+    assert report.deaths == 1
+    assert world.creature_at(2, 2) is None
+    assert world.creature_at(4, 4) is survivor
+    assert log == ["Uruk: fallo de percepción"]

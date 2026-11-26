@@ -4,7 +4,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from ..world.entities import Terrain, WorldObject
-from .errors import LoadError, tag_errors
+from .errors import LoadError, read_source, tag_errors
 from .object_loader import load_object
 from .terrain_loader import load_terrain
 
@@ -95,7 +95,9 @@ def load_definitions(
 ) -> tuple[Registry, list[LoadError]]:
     """Carga todos los .te y .ob de dos carpetas y devuelve registro y errores.
 
-    Recorre cada carpeta en orden alfabético, conserva lo válido y acumula errores con su ruta.
+    Recorre cada carpeta en orden alfabético, conserva lo válido y acumula
+    errores con su ruta. La carga es tolerante por archivo: uno ilegible se
+    reporta y no impide cargar los demás.
 
     Args:
         terrains_dir: Carpeta con ficheros *.te.
@@ -107,14 +109,24 @@ def load_definitions(
     registry = Registry()
     errors: list[LoadError] = []
     for path in sorted(terrains_dir.glob("*.te")):
-        result = load_terrain(path.read_text(encoding="utf-8"))
+        source, read_error = read_source(path)
+        if read_error is not None:
+            errors.append(read_error)
+            continue
+        assert source is not None
+        result = load_terrain(source)
         errors.extend(tag_errors(result.errors, path))
         if result.terrain is not None:
             conflict = registry.add_terrain(result.terrain, result.char_line)
             if conflict is not None:
                 errors.append(tag_errors([conflict], path)[0])
     for path in sorted(objects_dir.glob("*.ob")):
-        result = load_object(path.read_text(encoding="utf-8"))
+        source, read_error = read_source(path)
+        if read_error is not None:
+            errors.append(read_error)
+            continue
+        assert source is not None
+        result = load_object(source)
         errors.extend(tag_errors(result.errors, path))
         if result.object is not None:
             conflict = registry.add_object(result.object, result.char_line)

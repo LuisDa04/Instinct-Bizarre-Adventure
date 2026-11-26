@@ -11,7 +11,7 @@ from instinct.sim.cli import SPEEDS
 
 from .constants import (
     BASE_TILE_SIZE,
-    PHASE_LOADING,
+    PHASE_NO_MAPS,
     PHASE_SIMULATION,
 )
 
@@ -26,7 +26,7 @@ class UIState:
     """
 
     # Fase actual de la aplicación
-    phase: str = PHASE_LOADING
+    phase: str = PHASE_NO_MAPS
 
     # Carga
     loaded: LoadedWorld | None = None

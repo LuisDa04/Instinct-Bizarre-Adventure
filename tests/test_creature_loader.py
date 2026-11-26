@@ -137,3 +137,14 @@ def test_load_creatures_empty_directory(tmp_path) -> None:
     creatures, errors = load_creatures(tmp_path)
     assert creatures == {}
     assert errors == []
+
+
+def test_load_creatures_non_utf8_file_keeps_valid(tmp_path) -> None:
+    (tmp_path / "a_uruk.ins").write_text(URUK, encoding="utf-8")
+    bad_path = tmp_path / "z_mal.ins"
+    bad_path.write_bytes(b"creature \xf1\n")
+    creatures, errors = load_creatures(tmp_path)
+    assert list(creatures) == ["Uruk"]
+    assert [(error.line, error.message, error.path) for error in errors] == [
+        (1, "el archivo no está codificado en UTF-8", str(bad_path))
+    ]

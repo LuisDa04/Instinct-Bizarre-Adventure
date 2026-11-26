@@ -1,4 +1,4 @@
-from instinct.loaders.errors import LoadError
+from instinct.loaders.errors import LoadError, read_source
 from instinct.loaders.object_loader import load_object
 from instinct.loaders.registry import Registry, load_definitions
 from instinct.loaders.terrain_loader import TerrainResult, load_terrain
@@ -251,3 +251,59 @@ def test_load_definitions_reports_char_clash_between_files(tmp_path) -> None:
     assert [(error.line, error.message, error.path) for error in errors] == [
         (2, "el char '.' ya está declarado por 'Grass'", str(terrains / "b_dirt.te"))
     ]
+
+
+def test_load_definitions_non_utf8_files_keep_valid(tmp_path) -> None:
+    terrains = tmp_path / "terrains"
+    objects = tmp_path / "objects"
+    terrains.mkdir()
+    objects.mkdir()
+    (terrains / "a_grass.te").write_text(GRASS, encoding="utf-8")
+    bad_terrain = terrains / "z_mal.te"
+    bad_terrain.write_bytes(b"terrain \xf1\n")
+    (objects / "a_rock.ob").write_text(ROCK, encoding="utf-8")
+    bad_object = objects / "z_mal.ob"
+    bad_object.write_bytes(b"object \xf1\n")
+    registry, errors = load_definitions(terrains, objects)
+    assert [terrain.name for terrain in registry.terrains] == ["Grass"]
+    assert [obj.name for obj in registry.objects] == ["Rock"]
+    assert [(error.line, error.message, error.path) for error in errors] == [
+        (1, "el archivo no está codificado en UTF-8", str(bad_terrain)),
+        (1, "el archivo no está codificado en UTF-8", str(bad_object)),
+    ]
+
+
+def test_read_source_returns_text(tmp_path) -> None:
+    path = tmp_path / "bueno.te"
+    path.write_text(GRASS, encoding="utf-8")
+    source, error = read_source(path)
+    assert source == GRASS
+    assert error is None
+
+
+def test_read_source_reports_non_utf8(tmp_path) -> None:
+    path = tmp_path / "mal.te"
+    path.write_bytes(b"terrain \xf1\n")
+    source, error = read_source(path)
+    assert source is None
+    assert error is not None
+    assert error.code == "LOAD"
+    assert (error.line, error.message, error.path) == (
+        1,
+        "el archivo no está codificado en UTF-8",
+        str(path),
+    )
+
+
+def test_read_source_reports_unreadable_path(tmp_path) -> None:
+    path = tmp_path / "directorio.te"
+    path.mkdir()
+    source, error = read_source(path)
+    assert source is None
+    assert error is not None
+    assert error.code == "LOAD"
+    assert (error.line, error.message, error.path) == (
+        1,
+        "no se pudo leer el archivo",
+        str(path),
+    )

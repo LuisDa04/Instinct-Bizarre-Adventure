@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from instinct.loaders.errors import LoadError
 from instinct.loaders.map_loader import build_world, load_map, load_maps
 from instinct.loaders.object_loader import load_object
@@ -19,6 +21,18 @@ PLAIN_MAP = (
     ".#..................\n"
     ".#........##........\n"
 )
+
+
+class ReversedGlobDir:
+    """Carpeta simulada que entrega los mapas en orden inverso al alfabético."""
+
+    def __init__(self, real_dir: Path) -> None:
+        """Guarda la carpeta real sobre la que consulta los archivos."""
+        self._real_dir = real_dir
+
+    def glob(self, pattern: str):
+        """Devuelve los archivos en orden inverso al de la carpeta real."""
+        return reversed(sorted(self._real_dir.glob(pattern)))
 
 
 def make_registry(
@@ -259,3 +273,83 @@ def test_load_maps_returns_alphabetical_by_filename(tmp_path) -> None:
     loaded, errors = load_maps(maps, registry)
     assert errors == []
     assert [game_map.name for game_map in loaded] == ["Segundo", "Primero"]
+
+
+def test_duplicate_map_name_keeps_first_and_reports_second(tmp_path) -> None:
+    maps = tmp_path / "maps"
+    maps.mkdir()
+    # Se escribe primero el archivo que va después en orden alfabético.
+    second_path = maps / "b.map"
+    second_path.write_text("Repetido\nww.\n", encoding="utf-8")
+    first_path = maps / "a.map"
+    first_path.write_text("Repetido\n..\n", encoding="utf-8")
+    registry = make_registry((GRASS, WATER), (ROCK,))
+    loaded, errors = load_maps(ReversedGlobDir(maps), registry)
+    assert [game_map.name for game_map in loaded] == ["Repetido"]
+    assert loaded[0].cells[0][0].terrain.name == "Grass"
+    assert [(error.line, error.message, error.path) for error in errors] == [
+        (1, "nombre de mapa duplicado 'Repetido'", str(second_path))
+    ]
+
+
+def test_invalid_map_with_duplicate_name_reports_only_parse_error(tmp_path) -> None:
+    maps = tmp_path / "maps"
+    maps.mkdir()
+    valid_path = maps / "a.map"
+    valid_path.write_text("Repetido\n..\n", encoding="utf-8")
+    invalid_path = maps / "b.map"
+    invalid_path.write_text("Repetido\n..X.\n", encoding="utf-8")
+    registry = make_registry((GRASS,), (ROCK,))
+    loaded, errors = load_maps(maps, registry)
+    assert [game_map.name for game_map in loaded] == ["Repetido"]
+    assert loaded[0].cells[0][0].terrain.name == "Grass"
+    assert [(error.line, error.message, error.path) for error in errors] == [
+        (2, "char desconocido 'X'", str(invalid_path))
+    ]
+
+
+def test_each_extra_map_with_duplicate_name_reports_one_error(tmp_path) -> None:
+    maps = tmp_path / "maps"
+    maps.mkdir()
+    for path, text in (
+        ("a.map", "Repetido\n..\n"),
+        ("b.map", "Repetido\nww.\n"),
+        ("c.map", "Repetido\n..\n"),
+    ):
+        (maps / path).write_text(text, encoding="utf-8")
+    registry = make_registry((GRASS, WATER), (ROCK,))
+    loaded, errors = load_maps(maps, registry)
+    assert [game_map.name for game_map in loaded] == ["Repetido"]
+    assert loaded[0].cells[0][0].terrain.name == "Grass"
+    assert [(error.line, error.path) for error in errors] == [
+        (1, str(maps / "b.map")),
+        (1, str(maps / "c.map")),
+    ]
+
+
+def test_load_maps_non_utf8_file_keeps_valid(tmp_path) -> None:
+    maps = tmp_path / "maps"
+    maps.mkdir()
+    (maps / "a_bueno.map").write_text("Bueno\n...\n", encoding="utf-8")
+    bad_path = maps / "z_mal.map"
+    bad_path.write_bytes(b"Mapa\n..\xf1\n")
+    registry = make_registry((GRASS,), (ROCK,))
+    loaded, errors = load_maps(maps, registry)
+    assert [game_map.name for game_map in loaded] == ["Bueno"]
+    assert [(error.line, error.message, error.path) for error in errors] == [
+        (1, "el archivo no está codificado en UTF-8", str(bad_path))
+    ]
+
+
+def test_load_maps_directory_named_map_is_reported(tmp_path) -> None:
+    maps = tmp_path / "maps"
+    maps.mkdir()
+    (maps / "bueno.map").write_text("Bueno\n...\n", encoding="utf-8")
+    bad_path = maps / "bad.map"
+    bad_path.mkdir()
+    registry = make_registry((GRASS,), (ROCK,))
+    loaded, errors = load_maps(maps, registry)
+    assert [game_map.name for game_map in loaded] == ["Bueno"]
+    assert [(error.line, error.message, error.path) for error in errors] == [
+        (1, "no se pudo leer el archivo", str(bad_path))
+    ]

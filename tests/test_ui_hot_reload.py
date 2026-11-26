@@ -31,6 +31,29 @@ start:
     wait(2)
     goto start
 """
+ORC_FROM_URUK = """\
+creature Orc
+faction isengard
+health 80
+vision 6
+lifespan 400
+
+start:
+    wait(1)
+    goto start
+"""
+URUK_UPPERCASE = """\
+creature URUK
+faction mordor
+health 80
+vision 9
+lifespan 500
+
+start:
+    wait(2)
+    goto start
+"""
+RENAME_MESSAGE = "la cabecera declara 'Orc' pero se esperaba 'Uruk'; recarga cancelada"
 HUNTER = """\
 creature Hunter
 faction mordor
@@ -105,6 +128,115 @@ def test_reload_from_source_updates_placed_creatures(tmp_path: Path) -> None:
         assert creature.vision == 9
         assert creature.lifespan == 500
         assert creature.pc == creature.program.labels["start"]
+
+
+def test_reload_from_source_rejects_renamed_header(tmp_path: Path) -> None:
+    session = build_session(tmp_path)
+    session.pick_species("Uruk")
+    session.cell(0, 0)
+    session.start()
+
+    world = session.state.world
+    assert world is not None
+    placed = world.creature_at(0, 0)
+    assert placed is not None
+    placed.health = 33
+    before_program = placed.program
+    assert session._cli.loaded is not None
+    before_catalog = dict(session._cli.loaded.creatures)
+
+    result = session.reload_from_source(ORC_FROM_URUK, expected_name="Uruk")
+
+    assert result == ReloadResult(False, None, [RENAME_MESSAGE])
+    assert set(session._cli.loaded.creatures) == set(before_catalog)
+    assert "Orc" not in session._cli.loaded.creatures
+    assert session._cli.loaded.creatures["Uruk"] is before_catalog["Uruk"]
+    after = world.creature_at(0, 0)
+    assert after is placed
+    assert after.health == 33
+    assert after.program is before_program
+    assert after.name == "Uruk"
+
+
+def test_reload_from_source_reuses_existing_key_for_case_variant(tmp_path: Path) -> None:
+    """Una variante de mayúsculas actualiza la clave existente y la criatura."""
+    session = build_session(tmp_path)
+    session.pick_species("Uruk")
+    session.cell(0, 0)
+    session.start()
+
+    world = session.state.world
+    assert world is not None
+    placed = world.creature_at(0, 0)
+    assert placed is not None
+    placed.health = 33
+    before_program = placed.program
+    assert session._cli.loaded is not None
+    before_catalog = dict(session._cli.loaded.creatures)
+
+    result = session.reload_from_source(URUK_UPPERCASE, expected_name="Uruk")
+
+    assert result == ReloadResult(True, "Uruk", [])
+    assert set(session._cli.loaded.creatures) == set(before_catalog)
+    assert "URUK" not in session._cli.loaded.creatures
+    catalog_program = session._cli.loaded.creatures["Uruk"]
+    assert catalog_program.faction == "mordor"
+    assert catalog_program.vision == 9
+
+    after = world.creature_at(0, 0)
+    assert after is placed
+    assert after.health == 33
+    assert after.program is not before_program
+    assert after.program is catalog_program
+    assert after.faction == "mordor"
+    assert after.vision == 9
+    assert after.name == "Uruk"
+
+    session.cell(1, 0)
+    newcomer = world.creature_at(1, 0)
+    assert newcomer is not None
+    assert newcomer.name == "Uruk"
+    assert set(session._cli.loaded.creatures) == set(before_catalog)
+
+    second = session.reload_from_source(URUK, expected_name="Uruk")
+    assert second == ReloadResult(True, "Uruk", [])
+    assert set(session._cli.loaded.creatures) == set(before_catalog)
+    assert newcomer.program is session._cli.loaded.creatures["Uruk"]
+    assert newcomer.faction == "isengard"
+    assert newcomer.vision == 6
+
+
+def test_reload_from_source_accepts_expected_name_case_insensitive(tmp_path: Path) -> None:
+    session = build_session(tmp_path)
+
+    result = session.reload_from_source(URUK_V2, expected_name="uruk")
+
+    assert result == ReloadResult(True, "Uruk", [])
+    assert session._cli.loaded is not None
+    assert session._cli.loaded.creatures["Uruk"].faction == "mordor"
+    assert "uruk" not in session._cli.loaded.creatures
+
+
+def test_reload_creature_wrapper_rejects_renamed_header(tmp_path: Path) -> None:
+    session = build_session(tmp_path)
+
+    ok, errors = session.reload_creature("Uruk", ORC_FROM_URUK)
+
+    assert ok is False
+    assert errors == [RENAME_MESSAGE]
+    assert session._cli.loaded is not None
+    assert "Orc" not in session._cli.loaded.creatures
+
+
+def test_reload_creature_wrapper_ignores_empty_marker(tmp_path: Path) -> None:
+    session = build_session(tmp_path)
+
+    ok, errors = session.reload_creature("", URUK_V2)
+
+    assert ok is True
+    assert errors == []
+    assert session._cli.loaded is not None
+    assert session._cli.loaded.creatures["Uruk"].vision == 9
 
 
 def test_reload_from_source_invalid_does_not_mutate(tmp_path: Path) -> None:
