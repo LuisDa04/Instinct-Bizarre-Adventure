@@ -1,10 +1,10 @@
-"""Sesión de la interfaz: acciones del usuario ejecutadas sobre el CLI."""
+"""Sesión de la interfaz: acciones del usuario sobre la fachada de simulación."""
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
 from pathlib import Path
 
-from instinct.sim.cli import CLI, SPEEDS
+from instinct.sim.controller import SimulationController
 from instinct.loaders.creature_loader import load_creature
 
 from .constants import (
@@ -27,12 +27,12 @@ class ReloadResult:
 
 
 class Session:
-    """Ejecuta las acciones de la interfaz reutilizando el CLI como fachada.
+    """Ejecuta las acciones de la interfaz sobre `SimulationController`.
 
-    El CLI ya monta el motor y el intérprete al seleccionar un mapa, así que
-    la sesión nunca habla con el intérprete: traduce acciones de usuario en
-    llamadas al CLI y mantiene el estado que la vista renderiza. Recuerda las
-    colocaciones para poder repetir una partida entera con otra semilla.
+    La fachada ya monta el motor y el intérprete al seleccionar un mapa, así
+    que la sesión nunca habla con el intérprete: traduce acciones de usuario
+    en llamadas al controlador y mantiene el estado que la vista renderiza.
+    Recuerda las colocaciones para repetir una partida con otra semilla.
     """
 
     def __init__(self, base_dir: Path, seed: int = 42) -> None:
@@ -43,7 +43,7 @@ class Session:
             seed: Semilla inicial; visible y editable desde la interfaz.
         """
         self._base_dir = base_dir
-        self._cli = CLI(base_dir, seed=seed)
+        self._controller = SimulationController(base_dir, seed=seed)
         self.state = UIState(seed=seed, seed_input=str(seed))
         self._placements: list[tuple[str, int, int]] = []
         self._log_cursor = 0
@@ -58,12 +58,12 @@ class Session:
         Returns:
             True si hay al menos un mapa válido; False si la lista queda vacía.
         """
-        self.state.load_report = self._cli.load_content()
-        self.state.loaded = self._cli.loaded
+        self.state.load_report = self._controller.load_content()
+        self.state.loaded = self._controller.loaded
         self.state.phase = (
-            PHASE_MAP_SELECT if self._cli.map_names() else PHASE_NO_MAPS
+            PHASE_MAP_SELECT if self._controller.map_names() else PHASE_NO_MAPS
         )
-        return bool(self._cli.map_names())
+        return bool(self._controller.map_names())
 
     # ------------------------------------------------------------------
     # Mapa y colocación
@@ -76,14 +76,14 @@ class Session:
             name: Nombre tal como aparece en la lista de mapas.
 
         Returns:
-            Mensaje del CLI; si el mapa no existe la fase no cambia.
+            Mensaje de la fachada; si el mapa no existe la fase no cambia.
         """
-        if name not in self._cli.map_names():
-            return self._cli.select_map(name)
-        message = self._cli.select_map(name)
+        if name not in self._controller.map_names():
+            return self._controller.select_map(name)
+        message = self._controller.select_map(name)
         self.state.map_name = name
-        self.state.world = self._cli.world
-        self.state.engine = self._cli.engine
+        self.state.world = self._controller.world
+        self.state.engine = self._controller.engine
         self.state.phase = PHASE_PLACEMENT
         self.state.placement_species = None
         self.state.selected_cell = None
@@ -117,7 +117,7 @@ class Session:
         assert self.state.world is not None
         creature = self.state.world.creature_at(x, y)
         if creature is not None:
-            message = self._cli.remove_creature(x, y)
+            message = self._controller.remove_creature(x, y)
             self._placements = [
                 (species, px, py)
                 for species, px, py in self._placements
@@ -125,7 +125,7 @@ class Session:
             ]
         elif self.state.placement_species is not None:
             species = self.state.placement_species
-            message = self._cli.place_creature(species, x, y)
+            message = self._controller.place_creature(species, x, y)
             placed_creature = self.state.world.creature_at(x, y)
             if placed_creature is not None and placed_creature.name == species:
                 self._placements.append((species, x, y))
@@ -181,7 +181,7 @@ class Session:
         Args:
             index: Posición en el catálogo de velocidades.
         """
-        if 0 <= index < len(SPEEDS):
+        if 0 <= index < len(SimulationController.SPEEDS):
             self.state.speed_index = index
 
     # ------------------------------------------------------------------
@@ -190,9 +190,9 @@ class Session:
 
     def reset(self) -> None:
         """Reconstruye el mundo actual sin criaturas y vuelve a la colocación."""
-        message = self._cli.reset()
-        self.state.world = self._cli.world
-        self.state.engine = self._cli.engine
+        message = self._controller.reset()
+        self.state.world = self._controller.world
+        self.state.engine = self._controller.engine
         self.state.phase = PHASE_PLACEMENT
         self.state.paused = False
         self.state.tick = 0
@@ -205,27 +205,27 @@ class Session:
     def repeat_seed(self) -> None:
         """Repite la partida con la semilla del campo visible.
 
-        Crea un CLI nuevo con esa semilla sin releer el disco (reaprovecha
-        lo ya cargado), recoloca las mismas criaturas en las mismas celdas y
-        arranca la simulación en marcha. El motor nace con la semilla dada,
-        así que cada repetición produce exactamente la misma traza.
+        Crea un controlador nuevo con esa semilla sin releer el disco
+        (reaprovecha lo ya cargado), recoloca las mismas criaturas en las
+        mismas celdas y arranca la simulación en marcha. El motor nace con la
+        semilla dada, así que cada repetición produce la misma traza.
         """
         seed = self._seed_from_input()
-        cli = CLI(self._base_dir, seed=seed)
-        cli.loaded = self._cli.loaded
+        controller = SimulationController(self._base_dir, seed=seed)
+        controller.loaded = self._controller.loaded
         map_name = self.state.map_name or ""
-        message = cli.select_map(map_name)
-        if map_name not in cli.map_names():
+        message = controller.select_map(map_name)
+        if map_name not in controller.map_names():
             self.state.messages.append(message)
             return
         for species, x, y in self._placements:
-            cli.place_creature(species, x, y)
-        self._cli = cli
+            controller.place_creature(species, x, y)
+        self._controller = controller
         self.state.seed = seed
         self.state.seed_input = str(seed)
         self.state.seed_focused = False
-        self.state.world = cli.world
-        self.state.engine = cli.engine
+        self.state.world = controller.world
+        self.state.engine = controller.engine
         self.state.phase = PHASE_SIMULATION
         self.state.paused = False
         self.state.tick = 0
@@ -239,7 +239,7 @@ class Session:
 
     def _pull_logs(self) -> None:
         """Añade al registro los mensajes del motor escritos desde la última vez."""
-        logs = self._cli.logs
+        logs = self._controller.logs
         self.state.messages.extend(logs[self._log_cursor:])
         self._log_cursor = len(logs)
         if len(self.state.messages) > MAX_LOG_LINES:
@@ -267,7 +267,7 @@ class Session:
         Returns:
             Resultado con ok, nombre canónico de especie y errores formateados.
         """
-        if self._cli.loaded is None:
+        if self._controller.loaded is None:
             return ReloadResult(False, None, ["no hay contenido cargado"])
 
         result = load_creature(source)
@@ -298,11 +298,11 @@ class Session:
         existente para no duplicar la especie y para que las criaturas colocadas
         sigan coincidiendo por nombre al recolocarse.
         """
-        assert self._cli.loaded is not None
+        assert self._controller.loaded is not None
         for candidate in (expected_name, header_name):
             if candidate is None:
                 continue
-            for key in self._cli.loaded.creatures:
+            for key in self._controller.loaded.creatures:
                 if key.casefold() == candidate.casefold():
                     return key
         return header_name
@@ -328,8 +328,8 @@ class Session:
 
     def _apply_reload(self, name: str, new_program) -> None:
         """Aplica un programa ya compilado al catálogo y al mundo activo."""
-        assert self._cli.loaded is not None
-        self._cli.loaded.creatures[name] = new_program
+        assert self._controller.loaded is not None
+        self._controller.loaded.creatures[name] = new_program
         if self.state.world is not None:
             self._reload_species_creatures(name, new_program)
 

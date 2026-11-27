@@ -438,17 +438,17 @@ def test_hot_reload_warns_and_rejects_renamed_header(
     shown = _capture_warning(monkeypatch)
     status: list[str] = []
     monkeypatch.setattr(widget, "_show_status", status.append, raising=False)
-    assert session._cli.loaded is not None
-    before_catalog = dict(session._cli.loaded.creatures)
+    assert session._controller.loaded is not None
+    before_catalog = dict(session._controller.loaded.creatures)
 
     widget._hot_reload_current()
 
     assert len(shown) == 1
     assert "recarga cancelada" in shown[0][2]
     assert status == []
-    assert set(session._cli.loaded.creatures) == set(before_catalog)
-    assert "Orc" not in session._cli.loaded.creatures
-    assert session._cli.loaded.creatures["Uruk"] is before_catalog["Uruk"]
+    assert set(session._controller.loaded.creatures) == set(before_catalog)
+    assert "Orc" not in session._controller.loaded.creatures
+    assert session._controller.loaded.creatures["Uruk"] is before_catalog["Uruk"]
 
 
 def test_typing_and_paste_keep_editor_usable(

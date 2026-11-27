@@ -112,8 +112,8 @@ def test_reload_from_source_updates_placed_creatures(tmp_path: Path) -> None:
 
     result = session.reload_from_source(URUK_V2)
     assert result == ReloadResult(True, "Uruk", [])
-    assert session._cli.loaded is not None
-    assert session._cli.loaded.creatures["Uruk"].faction == "mordor"
+    assert session._controller.loaded is not None
+    assert session._controller.loaded.creatures["Uruk"].faction == "mordor"
 
     for creature, health, age, var_key, var_val, wait in (
         (world.creature_at(0, 0), 33, 7, "x", 9, 2),
@@ -142,15 +142,15 @@ def test_reload_from_source_rejects_renamed_header(tmp_path: Path) -> None:
     assert placed is not None
     placed.health = 33
     before_program = placed.program
-    assert session._cli.loaded is not None
-    before_catalog = dict(session._cli.loaded.creatures)
+    assert session._controller.loaded is not None
+    before_catalog = dict(session._controller.loaded.creatures)
 
     result = session.reload_from_source(ORC_FROM_URUK, expected_name="Uruk")
 
     assert result == ReloadResult(False, None, [RENAME_MESSAGE])
-    assert set(session._cli.loaded.creatures) == set(before_catalog)
-    assert "Orc" not in session._cli.loaded.creatures
-    assert session._cli.loaded.creatures["Uruk"] is before_catalog["Uruk"]
+    assert set(session._controller.loaded.creatures) == set(before_catalog)
+    assert "Orc" not in session._controller.loaded.creatures
+    assert session._controller.loaded.creatures["Uruk"] is before_catalog["Uruk"]
     after = world.creature_at(0, 0)
     assert after is placed
     assert after.health == 33
@@ -171,15 +171,15 @@ def test_reload_from_source_reuses_existing_key_for_case_variant(tmp_path: Path)
     assert placed is not None
     placed.health = 33
     before_program = placed.program
-    assert session._cli.loaded is not None
-    before_catalog = dict(session._cli.loaded.creatures)
+    assert session._controller.loaded is not None
+    before_catalog = dict(session._controller.loaded.creatures)
 
     result = session.reload_from_source(URUK_UPPERCASE, expected_name="Uruk")
 
     assert result == ReloadResult(True, "Uruk", [])
-    assert set(session._cli.loaded.creatures) == set(before_catalog)
-    assert "URUK" not in session._cli.loaded.creatures
-    catalog_program = session._cli.loaded.creatures["Uruk"]
+    assert set(session._controller.loaded.creatures) == set(before_catalog)
+    assert "URUK" not in session._controller.loaded.creatures
+    catalog_program = session._controller.loaded.creatures["Uruk"]
     assert catalog_program.faction == "mordor"
     assert catalog_program.vision == 9
 
@@ -196,12 +196,12 @@ def test_reload_from_source_reuses_existing_key_for_case_variant(tmp_path: Path)
     newcomer = world.creature_at(1, 0)
     assert newcomer is not None
     assert newcomer.name == "Uruk"
-    assert set(session._cli.loaded.creatures) == set(before_catalog)
+    assert set(session._controller.loaded.creatures) == set(before_catalog)
 
     second = session.reload_from_source(URUK, expected_name="Uruk")
     assert second == ReloadResult(True, "Uruk", [])
-    assert set(session._cli.loaded.creatures) == set(before_catalog)
-    assert newcomer.program is session._cli.loaded.creatures["Uruk"]
+    assert set(session._controller.loaded.creatures) == set(before_catalog)
+    assert newcomer.program is session._controller.loaded.creatures["Uruk"]
     assert newcomer.faction == "isengard"
     assert newcomer.vision == 6
 
@@ -212,9 +212,9 @@ def test_reload_from_source_accepts_expected_name_case_insensitive(tmp_path: Pat
     result = session.reload_from_source(URUK_V2, expected_name="uruk")
 
     assert result == ReloadResult(True, "Uruk", [])
-    assert session._cli.loaded is not None
-    assert session._cli.loaded.creatures["Uruk"].faction == "mordor"
-    assert "uruk" not in session._cli.loaded.creatures
+    assert session._controller.loaded is not None
+    assert session._controller.loaded.creatures["Uruk"].faction == "mordor"
+    assert "uruk" not in session._controller.loaded.creatures
 
 
 def test_reload_creature_wrapper_rejects_renamed_header(tmp_path: Path) -> None:
@@ -224,8 +224,8 @@ def test_reload_creature_wrapper_rejects_renamed_header(tmp_path: Path) -> None:
 
     assert ok is False
     assert errors == [RENAME_MESSAGE]
-    assert session._cli.loaded is not None
-    assert "Orc" not in session._cli.loaded.creatures
+    assert session._controller.loaded is not None
+    assert "Orc" not in session._controller.loaded.creatures
 
 
 def test_reload_creature_wrapper_ignores_empty_marker(tmp_path: Path) -> None:
@@ -235,8 +235,8 @@ def test_reload_creature_wrapper_ignores_empty_marker(tmp_path: Path) -> None:
 
     assert ok is True
     assert errors == []
-    assert session._cli.loaded is not None
-    assert session._cli.loaded.creatures["Uruk"].vision == 9
+    assert session._controller.loaded is not None
+    assert session._controller.loaded.creatures["Uruk"].vision == 9
 
 
 def test_reload_from_source_invalid_does_not_mutate(tmp_path: Path) -> None:
@@ -251,8 +251,8 @@ def test_reload_from_source_invalid_does_not_mutate(tmp_path: Path) -> None:
     assert before is not None
     before_health = before.health
     before_program = before.program
-    assert session._cli.loaded is not None
-    before_catalog = session._cli.loaded.creatures["Uruk"]
+    assert session._controller.loaded is not None
+    before_catalog = session._controller.loaded.creatures["Uruk"]
 
     result = session.reload_from_source("start:\n    wait(1)\n")
     assert result.ok is False
@@ -264,7 +264,7 @@ def test_reload_from_source_invalid_does_not_mutate(tmp_path: Path) -> None:
     assert after is not None
     assert after.health == before_health
     assert after.program is before_program
-    assert session._cli.loaded.creatures["Uruk"] is before_catalog
+    assert session._controller.loaded.creatures["Uruk"] is before_catalog
 
 
 def test_reload_from_source_without_loaded_content(tmp_path: Path) -> None:
@@ -280,8 +280,8 @@ def test_reload_creature_legacy_wrapper(tmp_path: Path) -> None:
     ok, errors = session.reload_creature("Uruk", URUK_V2)
     assert ok is True
     assert errors == []
-    assert session._cli.loaded is not None
-    assert session._cli.loaded.creatures["Uruk"].vision == 9
+    assert session._controller.loaded is not None
+    assert session._controller.loaded.creatures["Uruk"].vision == 9
 
 
 def test_reload_from_source_compiles_once(tmp_path: Path, monkeypatch) -> None:

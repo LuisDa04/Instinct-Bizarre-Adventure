@@ -339,7 +339,7 @@ Las jerarquías que esperamos (sugerencias de nuestra parte):
 
 - *Las percepciones.* Son muchas y todas se ven igual desde el intérprete. Resuélvanlas de forma inteligente, no con un `if nombre == ...` por cada una de las treinta.
 
-- *El mundo y la interfaz.* Al simulador le da igual si hay o no una interfaz. Si no pueden correr una simulación completa desde la terminal, sin abrir visual, está mal separado.
+- *El mundo y la interfaz.* Al simulador le da igual si hay o no una interfaz: la carga, la elección de mapa y la colocación viven en `SimulationController`, y el motor avanza con `engine.step()` sin depender de pygame. La aplicación visual es el único punto de entrada soportado.
 
 Sobre el alcance: queremos un intérprete que recorra el AST y ya, no una máquina virtual con bytecode. Si quieren entrar en ese tipo de cosas, adelante (de hecho como profesores siempre nos va a alegrar que ustedes vayan un poco más allá), pero está fuera del requisito base. Con la aplicación pasa igual: una ventana con la rejilla, las criaturas, el registro y los controles de tiempo cumple con la base. Los sprites, las animaciones y el inspector son extensión (espectacular), no requisito.
 

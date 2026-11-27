@@ -47,7 +47,7 @@ class EditorWidget(QWidget):
 
         Args:
             session: Sesión activa (compartida con App) que contiene
-                el CLI, el mundo y el motor de simulación.
+                la fachada de simulación, el mundo y el motor.
         """
         super().__init__(parent)
         self._session = session

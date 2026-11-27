@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from instinct.sim.cli import CLI
+from instinct.sim.controller import SimulationController
 from instinct.ui.session import Session
 
 GRASS = "terrain Grass\nchar .\nresource_max 100\nregen 2\n"
@@ -125,12 +125,12 @@ def test_select_map_unknown_with_alternate_wording_keeps_phase(
     """Un error con otro redactado no debe preparar la fase de colocación."""
     session = Session(build_content(tmp_path), seed=42)
     session.load()
-    original = session._cli.select_map
+    original = session._controller.select_map
 
     def alternate(name: str) -> str:
         return original(name).replace("no existe", "rechazado")
 
-    monkeypatch.setattr(session._cli, "select_map", alternate)
+    monkeypatch.setattr(session._controller, "select_map", alternate)
 
     message = session.select_map("NoExiste")
 
@@ -172,12 +172,12 @@ def test_cell_records_placement_from_world_not_wording(
 ) -> None:
     """La colocación se registra por el mundo aunque cambie el mensaje."""
     session = make_session(tmp_path)
-    original = session._cli.place_creature
+    original = session._controller.place_creature
 
     def alternate(species: str, x: int, y: int) -> str:
         return original(species, x, y).replace("colocada", "ubicada")
 
-    monkeypatch.setattr(session._cli, "place_creature", alternate)
+    monkeypatch.setattr(session._controller, "place_creature", alternate)
     session.pick_species("Uruk")
     session.cell(0, 0)
 
@@ -301,25 +301,25 @@ def test_repeat_seed_changes_seed_value(tmp_path) -> None:
 def test_repeat_seed_unknown_map_with_alternate_wording_keeps_state(
     tmp_path: Path, monkeypatch
 ) -> None:
-    """Un error con otro redactado no sustituye el CLI, el mundo ni la fase."""
+    """Un error con otro redactado no sustituye la fachada, el mundo ni la fase."""
     session = make_session(tmp_path, seed=7)
     session.state.map_name = "NoExiste"
     session.state.seed_input = "99"
-    previous_cli = session._cli
+    previous_controller = session._controller
     previous_world = session.state.world
     previous_phase = session.state.phase
 
-    original = CLI.select_map
+    original = SimulationController.select_map
 
     def alternate(self, name: str) -> str:
         return original(self, name).replace("no existe", "rechazado")
 
-    monkeypatch.setattr(CLI, "select_map", alternate)
+    monkeypatch.setattr(SimulationController, "select_map", alternate)
 
     session.repeat_seed()
 
     assert any("rechazado" in message for message in session.state.messages)
-    assert session._cli is previous_cli
+    assert session._controller is previous_controller
     assert session.state.world is previous_world
     assert session.state.seed == 7
     assert session.state.seed_input == "99"

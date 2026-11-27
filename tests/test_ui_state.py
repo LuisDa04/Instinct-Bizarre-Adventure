@@ -1,7 +1,7 @@
 """Pruebas del estado de la interfaz: fases, velocidad y listas de contenido."""
 from __future__ import annotations
 
-from instinct.sim.cli import SPEEDS
+from instinct.sim.controller import SimulationController
 from instinct.ui.constants import (
     PHASE_NO_MAPS,
     PHASE_PLACEMENT,
@@ -14,7 +14,7 @@ def test_defaults() -> None:
     assert state.phase == PHASE_NO_MAPS
     assert state.tile_size == 32
     assert state.seed == 42
-    assert state.speed_tps == SPEEDS[0]
+    assert state.speed_tps == SimulationController.SPEEDS[0]
     assert state.messages == []
 
 

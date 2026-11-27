@@ -7,7 +7,7 @@ from instinct.loaders.pipeline import LoadedWorld
 from instinct.sim.engine import Engine
 from instinct.world.world import World
 
-from instinct.sim.cli import SPEEDS
+from instinct.sim.controller import SimulationController
 
 from .constants import (
     BASE_TILE_SIZE,
@@ -32,7 +32,7 @@ class UIState:
     loaded: LoadedWorld | None = None
     load_report: str = ""
 
-    # Mapa elegido y mundo/motor que montó el CLI
+    # Mapa elegido y mundo/motor que montó la fachada
     map_name: str | None = None
     world: World | None = None
     engine: Engine | None = None
@@ -61,7 +61,7 @@ class UIState:
     @property
     def speed_tps(self) -> float:
         """Ticks por segundo de la velocidad seleccionada."""
-        return SPEEDS[self.speed_index]
+        return SimulationController.SPEEDS[self.speed_index]
 
     @property
     def map_names(self) -> list[str]:

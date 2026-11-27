@@ -11,7 +11,7 @@ from .constants import (
     PHASE_PLACEMENT,
     ZOOM_STEP,
 )
-from instinct.sim.cli import SPEEDS
+from instinct.sim.controller import SimulationController
 from .state import UIState
 
 #: Acciones de un solo nombre; el resto lleva dato en `value`.
@@ -158,7 +158,7 @@ class Controls:
             self.state.seed_focused = True
             return []
         if key == "speed":
-            next_index = (self.state.speed_index + 1) % len(SPEEDS)
+            next_index = (self.state.speed_index + 1) % len(SimulationController.SPEEDS)
             return [UIAction("speed", str(next_index))]
         if key in SIMPLE_ACTIONS:
             return [UIAction(key)]
